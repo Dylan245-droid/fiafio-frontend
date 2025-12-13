@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Smartphone, CreditCard, Wallet, Check, Loader2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Smartphone, CreditCard, Check, Loader2, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -37,7 +37,7 @@ export default function DepositPage() {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [amount, setAmount] = useState('');
   const [phone, setPhone] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [checkoutUrl, setCheckoutUrl] = useState('');
 

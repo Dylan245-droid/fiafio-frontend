@@ -12,7 +12,6 @@ export default function CashInPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'INPUT' | 'PROCESSING' | 'SUCCESS'>('INPUT');
   const [error, setError] = useState('');
-  const [paymentUrl, setPaymentUrl] = useState('');
 
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +26,6 @@ export default function CashInPage() {
 
       if (res.data.data.status === 'success') {
           if (res.data.data.data.auth_url) {
-             setPaymentUrl(res.data.data.data.auth_url);
              // Redirect for real flows
              window.location.href = res.data.data.data.auth_url;
           } else {

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, CheckCircle, Smartphone, User, Delete } from 'lucide-react';
+import { ArrowLeft, Search, CheckCircle, User, Delete } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 

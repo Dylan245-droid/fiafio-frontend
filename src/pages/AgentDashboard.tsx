@@ -82,7 +82,6 @@ export default function AgentDashboard() {
 
   // Data
   const [floatBalance, setFloatBalance] = useState(0);
-  const [walletBalance, setWalletBalance] = useState(0);
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTxRef, setSelectedTxRef] = useState<string | null>(null);
@@ -108,7 +107,6 @@ export default function AgentDashboard() {
       
       const accounts = accRes.data.accounts;
       setFloatBalance(accounts.find((a: any) => a.type === 'AGENT_FLOAT')?.balance || 0);
-      setWalletBalance(accounts.find((a: any) => a.type === 'WALLET')?.balance || 0);
       setTransactions(txRes.data.transactions);
       setStats(statsRes.data);
     } catch (error) {
@@ -359,7 +357,6 @@ export default function AgentDashboard() {
   // Transaction flow screens
   if (view !== 'DASHBOARD') {
     const isDeposit = view === 'DEPOSIT';
-    const color = isDeposit ? 'green' : 'orange';
 
     return (
       <div className="min-h-screen bg-background p-4 font-sans text-white">

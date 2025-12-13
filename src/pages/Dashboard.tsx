@@ -51,7 +51,6 @@ export default function Dashboard() {
   }, []);
 
   const wallet = accounts.find((a) => a.type === 'WALLET') || { balance: 0 };
-  const float = accounts.find((a) => a.type === 'AGENT_FLOAT');
 
   const handleLogout = () => {
     logout();
