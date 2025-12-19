@@ -250,10 +250,10 @@ const response = await fetch('https://api.fiafio.com/api/v1/payment-requests', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'X-API-Key': 'sk_live_xxxxxxxxxxxx'
+    'Authorization': 'Bearer sk_live_xxxxxxxxxxxx'
   },
   body: JSON.stringify({
-    recipient_id: 'FIA-ABC123',      // ID Fiafio du client
+    recipient_id: 'ABC123',         // ID Fiafio du client (6 caractères)
     amount: 5000,
     currency: 'XAF',
     description: 'Paiement facture #456',
@@ -275,10 +275,10 @@ response = requests.post(
     'https://api.fiafio.com/api/v1/payment-requests',
     headers={
         'Content-Type': 'application/json',
-        'X-API-Key': 'sk_live_xxxxxxxxxxxx'
+        'Authorization': 'Bearer sk_live_xxxxxxxxxxxx'
     },
     json={
-        'recipient_id': 'FIA-ABC123',  # ID Fiafio du client
+        'recipient_id': 'ABC123',  # ID Fiafio (6 caractères)
         'amount': 5000,
         'currency': 'XAF',
         'description': 'Paiement facture #456',
@@ -302,10 +302,10 @@ curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_HTTPHEADER => [
         'Content-Type: application/json',
-        'X-API-Key: sk_live_xxxxxxxxxxxx'
+        'Authorization: Bearer sk_live_xxxxxxxxxxxx'
     ],
     CURLOPT_POSTFIELDS => json_encode([
-        'recipient_id' => 'FIA-ABC123',  // ID Fiafio du client
+        'recipient_id' => 'ABC123',  // ID Fiafio (6 caractères)
         'amount' => 5000,
         'currency' => 'XAF',
         'description' => 'Paiement facture #456',
@@ -324,9 +324,9 @@ echo "Statut: " . $data['payment_request']['status'];  // 'pending'
 
     curl: `curl -X POST https://api.fiafio.com/api/v1/payment-requests \\
   -H "Content-Type: application/json" \\
-  -H "X-API-Key: sk_live_xxxxxxxxxxxx" \\
+  -H "Authorization: Bearer sk_live_xxxxxxxxxxxx" \\
   -d '{
-    "recipient_id": "FIA-ABC123",
+    "recipient_id": "ABC123",
     "amount": 5000,
     "currency": "XAF",
     "description": "Paiement facture #456",
@@ -581,16 +581,17 @@ export default function DeveloperDocs() {
                 <div>
                   <h1 className="text-3xl font-bold mb-4">API Fiafio Pay</h1>
                   <p className="text-gray-400 text-lg">
-                    Intégrez les paiements Fiafio à votre application en quelques minutes. 
-                    Notre API REST vous permet d'accepter les paiements de vos clients de manière simple et sécurisée.
+                    Acceptez les paiements mobiles dans votre app. 
+                    Pas besoin de compte bancaire — vos clients paient depuis leur wallet Fiafio.
                   </p>
                 </div>
 
+                {/* Pourquoi Fiafio */}
                 <div className="grid md:grid-cols-3 gap-4">
                   {[
-                    { icon: Zap, title: 'Simple', desc: 'API REST avec JSON, intégration en 10 minutes' },
-                    { icon: Shield, title: 'Sécurisé', desc: 'HTTPS obligatoire, signatures webhook' },
-                    { icon: Globe, title: 'Temps réel', desc: 'Webhooks instantanés, polling disponible' },
+                    { icon: Zap, title: 'Simple', desc: '3 requêtes API suffisent. Intégration en 10 min.' },
+                    { icon: Shield, title: 'Fiable', desc: 'Déjà utilisé en production. Testé et approuvé.' },
+                    { icon: Globe, title: 'Temps réel', desc: 'Notifications push + webhooks instantanés.' },
                   ].map(({ icon: Icon, title, desc }) => (
                     <div key={title} className="p-5 rounded-xl bg-white/5 border border-white/10">
                       <Icon className="w-8 h-8 text-primary mb-3" />
@@ -600,57 +601,117 @@ export default function DeveloperDocs() {
                   ))}
                 </div>
 
-                <div className="p-6 rounded-xl bg-primary/10 border border-primary/30">
-                  <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                    <Terminal className="w-5 h-5 text-primary" />
-                    Deux méthodes d'intégration
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="p-4 rounded-lg bg-black/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CreditCard className="w-5 h-5 text-primary" />
-                        <h4 className="font-medium text-white">Checkout (Recommandé)</h4>
-                      </div>
-                      <p className="text-gray-400 text-sm mb-3">
-                        Créez une session de paiement et redirigez l'utilisateur vers notre page de paiement hébergée.
-                      </p>
-                      <ul className="text-gray-500 text-sm space-y-1">
-                        <li>✅ Aucun formulaire à gérer</li>
-                        <li>✅ Page de paiement optimisée</li>
-                        <li>✅ Idéal pour e-commerce</li>
-                      </ul>
+                {/* 🚀 COMMENT ÇA MARCHE - Guide visuel */}
+                <div className="p-6 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30">
+                  <h3 className="font-bold text-white mb-6 text-xl">🚀 Comment ça marche ?</h3>
+                  
+                  <div className="grid md:grid-cols-4 gap-4">
+                    {/* Étape 1 */}
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-primary text-black rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-3">1</div>
+                      <h4 className="font-semibold text-white mb-2">Créez un compte</h4>
+                      <p className="text-gray-400 text-sm">Inscrivez-vous et récupérez votre clé secrète <code className="text-primary">sk_xxx</code></p>
                     </div>
-                    <div className="p-4 rounded-lg bg-black/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Send className="w-5 h-5 text-primary" />
-                        <h4 className="font-medium text-white">Demande de paiement</h4>
-                      </div>
-                      <p className="text-gray-400 text-sm mb-3">
-                        Envoyez une demande de paiement directement à un utilisateur Fiafio. Il approuve depuis son app.
-                      </p>
-                      <ul className="text-gray-500 text-sm space-y-1">
-                        <li>✅ Paiement sans redirection</li>
-                        <li>✅ Le client reçoit une notification</li>
-                        <li>✅ Idéal pour factures, abonnements</li>
-                      </ul>
+                    
+                    {/* Flèche */}
+                    <div className="hidden md:flex items-center justify-center">
+                      <ArrowRight className="w-6 h-6 text-primary/50" />
+                    </div>
+                    
+                    {/* Étape 2 */}
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-primary text-black rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-3">2</div>
+                      <h4 className="font-semibold text-white mb-2">Envoyez une requête</h4>
+                      <p className="text-gray-400 text-sm">Demandez un paiement avec l'ID Fiafio du client (6 caractères)</p>
+                    </div>
+                    
+                    {/* Flèche */}
+                    <div className="hidden md:flex items-center justify-center">
+                      <ArrowRight className="w-6 h-6 text-primary/50" />
+                    </div>
+                    
+                    {/* Étape 3 */}
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-primary text-black rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-3">3</div>
+                      <h4 className="font-semibold text-white mb-2">Client approuve</h4>
+                      <p className="text-gray-400 text-sm">Il reçoit une notification push et approuve en 1 clic</p>
+                    </div>
+                    
+                    {/* Flèche */}
+                    <div className="hidden md:flex items-center justify-center">
+                      <ArrowRight className="w-6 h-6 text-primary/50" />
+                    </div>
+                    
+                    {/* Étape 4 */}
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-3">✓</div>
+                      <h4 className="font-semibold text-white mb-2">Argent reçu !</h4>
+                      <p className="text-gray-400 text-sm">Webhook envoyé + argent sur votre compte Fiafio</p>
                     </div>
                   </div>
                 </div>
 
+                {/* Prérequis */}
+                <div className="p-5 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                  <h3 className="font-bold text-white mb-3 flex items-center gap-2">
+                    📋 Prérequis
+                  </h3>
+                  <ul className="text-gray-300 space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 mt-0.5 text-green-400 flex-shrink-0" />
+                      <span>Un <strong>compte marchand Fiafio</strong> (gratuit, inscription en 2 min)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 mt-0.5 text-green-400 flex-shrink-0" />
+                      <span>Votre <strong>clé secrète</strong> (visible dans le dashboard après inscription)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 mt-0.5 text-green-400 flex-shrink-0" />
+                      <span>L'<strong>ID Fiafio</strong> de votre client (6 caractères, ex: ABC123)</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Méthode disponible */}
                 <div className="p-6 rounded-xl bg-white/5 border border-white/10">
-                  <h3 className="font-bold text-white mb-3">Base URL</h3>
+                  <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                    <Send className="w-5 h-5 text-primary" />
+                    Méthode disponible : Demande de paiement
+                  </h3>
+                  <p className="text-gray-400 mb-4">
+                    Vous envoyez une demande → Le client l'approuve depuis son app → Vous recevez l'argent.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">✅ En production</span>
+                    <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm">Testé & fiable</span>
+                    <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">3 endpoints seulement</span>
+                  </div>
+                </div>
+
+                {/* Base URL */}
+                <div className="p-6 rounded-xl bg-white/5 border border-white/10">
+                  <h3 className="font-bold text-white mb-3">🔗 Base URL</h3>
                   <code className="text-primary bg-black/40 px-3 py-2 rounded-lg text-sm block">
                     https://api.fiafio.com/api/v1
                   </code>
+                  <p className="text-gray-500 text-sm mt-2">
+                    Toutes les requêtes sont en HTTPS. Format JSON uniquement.
+                  </p>
                 </div>
 
                 <div className="flex gap-4">
                   <button
-                    onClick={() => setActiveSection('authentication')}
+                    onClick={() => setActiveSection('payment_request')}
                     className="px-6 py-3 bg-primary text-black rounded-xl font-semibold flex items-center gap-2 hover:scale-105 transition-transform"
                   >
-                    Commencer l'intégration
+                    Voir le code
                     <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setActiveSection('authentication')}
+                    className="px-6 py-3 bg-white/10 text-white rounded-xl font-semibold flex items-center gap-2 hover:bg-white/20 transition-colors"
+                  >
+                    Authentification
                   </button>
                 </div>
               </div>
@@ -688,7 +749,7 @@ export default function DeveloperDocs() {
                   <h3 className="font-bold text-white mb-4">Header requis</h3>
                   <CodeBlock
                     language="http"
-                    code={`X-API-Key: sk_live_xxxxxxxxxxxx
+                    code={`Authorization: Bearer sk_live_xxxxxxxxxxxx
 Content-Type: application/json`}
                   />
                 </div>
@@ -707,115 +768,43 @@ Content-Type: application/json`}
               </div>
             )}
 
-            {/* Checkout Section */}
+            {/* Checkout Section - Coming Soon */}
             {activeSection === 'checkout' && (
               <div className="space-y-8">
                 <div>
-                  <h1 className="text-3xl font-bold mb-4">Checkout - Créer un paiement</h1>
+                  <h1 className="text-3xl font-bold mb-4">Checkout - Session de paiement</h1>
                   <p className="text-gray-400">
                     Créez une session de checkout et redirigez l'utilisateur vers notre page de paiement sécurisée.
                   </p>
                 </div>
 
-                <div className="p-6 rounded-xl bg-white/5 border border-white/10">
-                  <h3 className="font-bold text-white mb-4">Endpoint</h3>
-                  <code className="text-primary bg-black/40 px-3 py-2 rounded-lg text-sm">
-                    POST /api/v1/checkout/sessions
-                  </code>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-white mb-4">Paramètres</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-white/10">
-                          <th className="text-left py-3 px-4 text-gray-400 font-medium">Paramètre</th>
-                          <th className="text-left py-3 px-4 text-gray-400 font-medium">Type</th>
-                          <th className="text-left py-3 px-4 text-gray-400 font-medium">Requis</th>
-                          <th className="text-left py-3 px-4 text-gray-400 font-medium">Description</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-gray-300">
-                        <tr className="border-b border-white/5">
-                          <td className="py-3 px-4"><code className="text-primary">amount</code></td>
-                          <td className="py-3 px-4">number</td>
-                          <td className="py-3 px-4">✓</td>
-                          <td className="py-3 px-4">Montant en XAF (entier)</td>
-                        </tr>
-                        <tr className="border-b border-white/5">
-                          <td className="py-3 px-4"><code className="text-primary">currency</code></td>
-                          <td className="py-3 px-4">string</td>
-                          <td className="py-3 px-4">✓</td>
-                          <td className="py-3 px-4">"XAF" (seule devise supportée)</td>
-                        </tr>
-                        <tr className="border-b border-white/5">
-                          <td className="py-3 px-4"><code className="text-primary">description</code></td>
-                          <td className="py-3 px-4">string</td>
-                          <td className="py-3 px-4"></td>
-                          <td className="py-3 px-4">Description affichée au client</td>
-                        </tr>
-                        <tr className="border-b border-white/5">
-                          <td className="py-3 px-4"><code className="text-primary">success_url</code></td>
-                          <td className="py-3 px-4">string</td>
-                          <td className="py-3 px-4"></td>
-                          <td className="py-3 px-4">URL de redirection après paiement réussi</td>
-                        </tr>
-                        <tr className="border-b border-white/5">
-                          <td className="py-3 px-4"><code className="text-primary">cancel_url</code></td>
-                          <td className="py-3 px-4">string</td>
-                          <td className="py-3 px-4"></td>
-                          <td className="py-3 px-4">URL de redirection si annulé</td>
-                        </tr>
-                        <tr className="border-b border-white/5">
-                          <td className="py-3 px-4"><code className="text-primary">webhook_url</code></td>
-                          <td className="py-3 px-4">string</td>
-                          <td className="py-3 px-4"></td>
-                          <td className="py-3 px-4">URL pour recevoir les notifications (recommandé)</td>
-                        </tr>
-                        <tr>
-                          <td className="py-3 px-4"><code className="text-gray-500">metadata</code></td>
-                          <td className="py-3 px-4">object</td>
-                          <td className="py-3 px-4"></td>
-                          <td className="py-3 px-4">Données personnalisées (retournées dans le webhook)</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                <div className="p-8 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-center">
+                  <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CreditCard className="w-8 h-8 text-yellow-400" />
                   </div>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-white mb-4">Exemple de code</h3>
-                  <LanguageTabs selected={selectedLang} onSelect={setSelectedLang} />
-                  <CodeBlock code={codeExamples.createCheckout[selectedLang]} language={selectedLang} />
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-white mb-4">Réponse</h3>
-                  <CodeBlock
-                    language="json"
-                    code={`{
-  "session": {
-    "id": "cs_abc123xyz",
-    "checkout_url": "https://pay.fiafio.com/checkout/cs_abc123xyz",
-    "status": "pending",
-    "amount": 5000,
-    "fee": 100,
-    "currency": "XAF",
-    "expires_at": "2024-01-15T11:00:00Z"
-  }
-}`}
-                  />
+                  <h3 className="text-xl font-bold text-yellow-400 mb-2">🚧 Bientôt disponible</h3>
+                  <p className="text-gray-400 max-w-md mx-auto mb-4">
+                    La méthode Checkout (redirection vers page de paiement) est en cours de finalisation.
+                  </p>
+                  <p className="text-gray-500 text-sm">
+                    En attendant, utilisez les <strong className="text-primary">Demandes de paiement</strong> — 
+                    une méthode fiable et déjà en production.
+                  </p>
+                  <button
+                    onClick={() => setActiveSection('payment_request')}
+                    className="mt-6 px-6 py-3 bg-primary text-black rounded-xl font-semibold hover:scale-105 transition-transform flex items-center gap-2 mx-auto"
+                  >
+                    <Send className="w-4 h-4" />
+                    Voir Demandes de paiement
+                  </button>
                 </div>
 
                 <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm">
-                  <strong>Flux de paiement:</strong>
-                  <ol className="mt-2 space-y-1 list-decimal list-inside">
-                    <li>Créez une session avec l'API</li>
-                    <li>Redirigez l'utilisateur vers <code className="bg-black/30 px-1 rounded">checkout_url</code></li>
-                    <li>L'utilisateur paie sur notre page sécurisée</li>
-                    <li>Nous envoyons un webhook et redirigeons vers <code className="bg-black/30 px-1 rounded">success_url</code></li>
-                  </ol>
+                  <strong>💡 Différence Checkout vs Demandes de paiement :</strong>
+                  <ul className="mt-2 space-y-1 list-disc list-inside text-gray-400">
+                    <li><strong className="text-blue-400">Checkout</strong>: L'utilisateur est redirigé vers une page Fiafio pour payer</li>
+                    <li><strong className="text-primary">Demandes de paiement</strong>: Vous envoyez une demande à l'ID Fiafio du client, il approuve depuis son app</li>
+                  </ul>
                 </div>
               </div>
             )}
@@ -860,7 +849,7 @@ Content-Type: application/json`}
                           <td className="py-3 px-4"><code className="text-primary">recipient_id</code></td>
                           <td className="py-3 px-4">string</td>
                           <td className="py-3 px-4">✓</td>
-                          <td className="py-3 px-4">ID Fiafio du client (ex: FIA-ABC123)</td>
+                          <td className="py-3 px-4">ID Fiafio du client (6 caractères, ex: ABC123)</td>
                         </tr>
                         <tr className="border-b border-white/5">
                           <td className="py-3 px-4"><code className="text-primary">amount</code></td>
@@ -959,6 +948,67 @@ Content-Type: application/json`}
                         <span className="text-gray-500 text-sm">{desc}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* 🔥 Erreurs communes - AIDE POUR JUNIORS */}
+                <div className="p-6 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-400" />
+                    Erreurs communes et solutions
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-lg bg-black/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <code className="text-red-400 font-bold">401 Unauthorized</code>
+                        <span className="text-xs text-gray-500">Header manquant ou invalide</span>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-2">
+                        <strong>Cause :</strong> Le header <code className="text-primary">Authorization</code> est absent ou mal formaté.
+                      </p>
+                      <p className="text-green-400 text-sm">
+                        <strong>✅ Solution :</strong> Ajoutez <code className="bg-black/50 px-1 rounded">Authorization: Bearer sk_live_xxx</code> dans les headers.
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-lg bg-black/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <code className="text-red-400 font-bold">404 Not Found</code>
+                        <span className="text-xs text-gray-500">Utilisateur introuvable</span>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-2">
+                        <strong>Cause :</strong> Le <code className="text-primary">recipient_id</code> n'existe pas ou est mal formaté.
+                      </p>
+                      <p className="text-green-400 text-sm">
+                        <strong>✅ Solution :</strong> Vérifiez que l'ID Fiafio a 6 caractères majuscules (ex: ABC123, pas FIA-ABC123).
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-lg bg-black/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <code className="text-red-400 font-bold">400 Bad Request</code>
+                        <span className="text-xs text-gray-500">Paramètres invalides</span>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-2">
+                        <strong>Cause :</strong> Un paramètre requis manque ou a un type incorrect.
+                      </p>
+                      <p className="text-green-400 text-sm">
+                        <strong>✅ Solution :</strong> Vérifiez que <code>amount</code> est un nombre, <code>recipient_id</code> est une string, et Content-Type est <code>application/json</code>.
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-lg bg-black/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <code className="text-red-400 font-bold">429 Too Many Requests</code>
+                        <span className="text-xs text-gray-500">Rate limit atteint</span>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-2">
+                        <strong>Cause :</strong> Vous envoyez trop de requêtes en peu de temps.
+                      </p>
+                      <p className="text-green-400 text-sm">
+                        <strong>✅ Solution :</strong> Attendez quelques secondes avant de réessayer.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
