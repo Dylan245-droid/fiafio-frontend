@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { 
   AlertTriangle, BrainCircuit, Activity, Users, ShieldAlert, FileText, 
-  Wallet, CheckCircle, XCircle, Clock, TrendingUp, Building, LogOut, Filter
+  Wallet, CheckCircle, XCircle, Clock, TrendingUp, Building, LogOut, Filter, DollarSign, BarChart3
 } from 'lucide-react';
 
 interface FloatRequest {
@@ -14,14 +14,17 @@ interface FloatRequest {
   amount: number;
   requesterName: string;
   requesterPhone: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED';
   message: string | null;
+  responseNote: string | null;
   createdAt: string;
+  respondedAt: string | null;
 }
 
 export default function AdminConsole() {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'FLOAT_REQUESTS' | 'LEDGER' | 'ALERTS' | 'AUDIT'>('DASHBOARD');
+  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'FLOAT_REQUESTS' | 'REVENUE' | 'LEDGER' | 'ALERTS' | 'AUDIT'>('DASHBOARD');
   const [stats, setStats] = useState<any>(null);
   const [ledger, setLedger] = useState<any[]>([]);
   const [filteredLedger, setFilteredLedger] = useState<any[]>([]);
@@ -37,18 +40,33 @@ export default function AdminConsole() {
   // Ledger filters
   const [ledgerFilter, setLedgerFilter] = useState<'ALL' | 'CREDIT' | 'DEBIT'>('ALL');
   const [ledgerSearch, setLedgerSearch] = useState('');
+  
+  // Float requests filter
+  const [floatFilter, setFloatFilter] = useState<string>('ALL');
+  const [allFloatRequests, setAllFloatRequests] = useState<FloatRequest[]>([]);
+  
+  // Revenue state
+  const [revenue, setRevenue] = useState<{
+    thisMonth: number;
+    lastMonth: number;
+    yearToDate: number;
+    growth: number;
+    monthlyData: { month: string; revenue: number; volume: number; count: number }[];
+  } | null>(null);
 
   useEffect(() => {
     fetchStats();
     fetchVelocity();
     fetchInjections();
     fetchFloatRequests(); // Load on mount for badge count
+    fetchRevenue(); // Load revenue on mount for dashboard card
   }, []);
 
   useEffect(() => {
     if (activeTab === 'LEDGER') fetchLedger();
     if (activeTab === 'ALERTS') fetchAlerts();
-    if (activeTab === 'FLOAT_REQUESTS') fetchFloatRequests();
+    if (activeTab === 'FLOAT_REQUESTS') fetchAllFloatRequests();
+    if (activeTab === 'REVENUE') fetchRevenue();
   }, [activeTab]);
 
   const fetchStats = async () => {
@@ -100,6 +118,13 @@ export default function AdminConsole() {
     setFilteredLedger(filtered);
   }, [ledger, ledgerFilter, ledgerSearch]);
 
+  // Reload float requests when filter changes
+  useEffect(() => {
+    if (activeTab === 'FLOAT_REQUESTS') {
+      fetchAllFloatRequests();
+    }
+  }, [floatFilter]);
+
   const fetchAlerts = async () => {
     try {
       const res = await api.get('/admin/alerts');
@@ -111,6 +136,20 @@ export default function AdminConsole() {
     try {
       const res = await api.get('/float-requests/pending');
       setFloatRequests(res.data.requests);
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchAllFloatRequests = async () => {
+    try {
+      const res = await api.get(`/float-requests/admin/all?status=${floatFilter}`);
+      setAllFloatRequests(res.data.requests);
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchRevenue = async () => {
+    try {
+      const res = await api.get('/admin/revenue');
+      setRevenue(res.data);
     } catch (e) { console.error(e); }
   };
 
@@ -203,6 +242,7 @@ export default function AdminConsole() {
         {[
           { key: 'DASHBOARD', label: 'Tableau de Bord', icon: TrendingUp },
           { key: 'FLOAT_REQUESTS', label: 'Demandes Float', icon: Wallet, badge: floatRequests.length },
+          { key: 'REVENUE', label: 'Recettes', icon: DollarSign },
           { key: 'LEDGER', label: 'Grand Livre', icon: FileText },
           { key: 'ALERTS', label: 'Alertes', icon: ShieldAlert, badge: stats?.openAlerts },
           { key: 'AUDIT', label: 'Audit IA', icon: BrainCircuit },
@@ -293,6 +333,22 @@ export default function AdminConsole() {
                 </div>
                 <p className="mt-1 text-xs text-gray-500">Aujourd'hui</p>
               </div>
+              <div className="rounded-3xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+                <div className="flex items-center gap-2 text-sm font-medium text-green-400">
+                  <DollarSign className="h-4 w-4" />
+                  Recettes (mois)
+                </div>
+                <div className="mt-2 text-2xl font-bold text-green-400">
+                  {formatCurrency(revenue?.thisMonth || 0)}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {revenue && revenue.growth !== 0 && (
+                    <span className={revenue.growth > 0 ? 'text-green-400' : 'text-red-400'}>
+                      {revenue.growth > 0 ? '+' : ''}{revenue.growth}%
+                    </span>
+                  )} vs mois dernier
+                </p>
+              </div>
             </div>
 
             {/* Velocity Chart */}
@@ -364,19 +420,54 @@ export default function AdminConsole() {
           <div className="space-y-4">
             <div className="rounded-2xl bg-blue-500/10 border border-blue-500/20 p-4 text-blue-400">
               <Wallet className="mr-2 inline h-5 w-5" />
-              Ces demandes proviennent d'agents qui souhaitent recharger leur float depuis la trésorerie Fiafio (0% frais).
+              Historique complet des demandes de recharge float vers Fiafio. Filtrez par statut pour gérer les demandes.
             </div>
 
-            {floatRequests.length === 0 ? (
+            {/* Status Filters */}
+            <div className="flex flex-wrap gap-2">
+              {['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setFloatFilter(s)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    floatFilter === s 
+                      ? s === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                      : s === 'APPROVED' ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : s === 'REJECTED' ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      : s === 'CANCELLED' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                      : s === 'EXPIRED' ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                      : 'bg-primary/20 text-primary border border-primary/30'
+                      : 'bg-surface/50 text-gray-400 hover:bg-surface'
+                  }`}
+                >
+                  {s === 'ALL' ? 'Toutes' : 
+                   s === 'PENDING' ? 'En attente' :
+                   s === 'APPROVED' ? 'Approuvées' :
+                   s === 'REJECTED' ? 'Refusées' :
+                   s === 'CANCELLED' ? 'Annulées' : 'Expirées'}
+                </button>
+              ))}
+            </div>
+
+            {allFloatRequests.length === 0 ? (
               <div className="rounded-3xl bg-surface/30 p-16 text-center">
                 <Clock className="mx-auto mb-4 h-16 w-16 text-gray-600" />
-                <h3 className="text-xl font-bold text-white">Aucune demande en attente</h3>
+                <h3 className="text-xl font-bold text-white">Aucune demande {floatFilter !== 'ALL' ? 'avec ce statut' : ''}</h3>
                 <p className="text-gray-500">Les demandes de recharge float des agents apparaîtront ici.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {floatRequests.map((req) => (
-                  <div key={req.id} className="rounded-3xl border border-white/10 bg-surface/30 p-6">
+                {allFloatRequests.map((req) => (
+                  <div 
+                    key={req.id} 
+                    className={`rounded-3xl border bg-surface/30 p-6 ${
+                      req.status === 'PENDING' ? 'border-yellow-500/30' :
+                      req.status === 'APPROVED' ? 'border-green-500/30' :
+                      req.status === 'REJECTED' ? 'border-red-500/30' :
+                      req.status === 'CANCELLED' ? 'border-orange-500/30 opacity-60' :
+                      'border-white/10 opacity-60'
+                    }`}
+                  >
                     <div className="mb-4 flex items-start justify-between">
                       <div>
                         <h3 className="text-lg font-bold text-white">{req.requesterName}</h3>
@@ -384,7 +475,18 @@ export default function AdminConsole() {
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-primary">{formatCurrency(req.amount)}</p>
-                        <p className="text-xs text-gray-500">Montant demandé</p>
+                        <span className={`inline-block mt-1 rounded-full px-3 py-1 text-xs font-bold ${
+                          req.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' :
+                          req.status === 'APPROVED' ? 'bg-green-500/20 text-green-400' :
+                          req.status === 'REJECTED' ? 'bg-red-500/20 text-red-400' :
+                          req.status === 'CANCELLED' ? 'bg-orange-500/20 text-orange-400' :
+                          'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {req.status === 'PENDING' ? 'En attente' :
+                           req.status === 'APPROVED' ? 'Approuvée' :
+                           req.status === 'REJECTED' ? 'Refusée' :
+                           req.status === 'CANCELLED' ? 'Annulée' : 'Expirée'}
+                        </span>
                       </div>
                     </div>
                     
@@ -394,31 +496,151 @@ export default function AdminConsole() {
                       </p>
                     )}
 
+                    {req.responseNote && (
+                      <p className="mb-4 text-sm text-gray-400">
+                        <span className="font-medium">Réponse:</span> {req.responseNote}
+                      </p>
+                    )}
+
                     <div className="mb-4 flex items-center gap-2 text-xs text-gray-500">
                       <Clock className="h-3 w-3" />
                       Réf: {req.reference} · {formatDate(req.createdAt)}
                     </div>
 
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleApproveFloat(req.id)}
-                        disabled={processingId === req.id}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-green-500 py-3 font-bold text-black hover:bg-green-400 disabled:opacity-50"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Approuver
-                      </button>
-                      <button
-                        onClick={() => handleRejectFloat(req.id)}
-                        disabled={processingId === req.id}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-500/20 py-3 font-bold text-red-400 hover:bg-red-500/30 disabled:opacity-50"
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Refuser
-                      </button>
-                    </div>
+                    {req.status === 'PENDING' && (
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleApproveFloat(req.id)}
+                          disabled={processingId === req.id}
+                          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-green-500 py-3 font-bold text-black hover:bg-green-400 disabled:opacity-50"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Approuver
+                        </button>
+                        <button
+                          onClick={() => handleRejectFloat(req.id)}
+                          disabled={processingId === req.id}
+                          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-500/20 py-3 font-bold text-red-400 hover:bg-red-500/30 disabled:opacity-50"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Refuser
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* REVENUE TAB */}
+        {activeTab === 'REVENUE' && (
+          <div className="space-y-6">
+            {/* Revenue Summary Cards */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-3xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-transparent p-6">
+                <div className="flex items-center gap-2 text-sm font-medium text-green-400">
+                  <DollarSign className="h-4 w-4" />
+                  Mois en cours
+                </div>
+                <div className="mt-2 text-3xl font-bold text-green-400">
+                  {formatCurrency(revenue?.thisMonth || 0)}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {revenue && revenue.growth !== 0 && (
+                    <span className={revenue.growth > 0 ? 'text-green-400' : 'text-red-400'}>
+                      {revenue.growth > 0 ? '↑' : '↓'} {Math.abs(revenue.growth)}%
+                    </span>
+                  )} vs mois dernier
+                </p>
+              </div>
+              <div className="rounded-3xl border border-white/5 bg-surface/30 p-6">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
+                  <BarChart3 className="h-4 w-4" />
+                  Mois dernier
+                </div>
+                <div className="mt-2 text-3xl font-bold text-white">
+                  {formatCurrency(revenue?.lastMonth || 0)}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Total des recettes</p>
+              </div>
+              <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent p-6">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <TrendingUp className="h-4 w-4" />
+                  Année en cours
+                </div>
+                <div className="mt-2 text-3xl font-bold text-primary">
+                  {formatCurrency(revenue?.yearToDate || 0)}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Cumul annuel</p>
+              </div>
+            </div>
+
+            {/* Info Banner */}
+            <div className="rounded-2xl bg-blue-500/10 border border-blue-500/20 p-4 text-blue-400">
+              <DollarSign className="mr-2 inline h-5 w-5" />
+              Les recettes proviennent des frais de transactions : 40% des frais de retrait (2%) et 60% des frais d'annulation (5%).
+            </div>
+
+            {/* Monthly Revenue Chart */}
+            <div className="h-80 w-full rounded-3xl border border-white/5 bg-surface/30 p-6">
+              <h3 className="mb-6 text-sm font-semibold uppercase tracking-wider text-gray-400">
+                Recettes Mensuelles (6 derniers mois)
+              </h3>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={revenue?.monthlyData || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="#666" 
+                    fontSize={12} 
+                    axisLine={false}
+                    tickLine={false}
+                    dy={10}
+                  />
+                  <YAxis 
+                    stroke="#666" 
+                    fontSize={12} 
+                    axisLine={false}
+                    tickLine={false}
+                    dx={-10}
+                    tickFormatter={(v) => `${Math.round(v/1000)}k`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#06231D', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                    itemStyle={{ color: '#fff' }}
+                    labelStyle={{ color: '#888', marginBottom: '0.5rem' }}
+                    formatter={(value: number) => [formatCurrency(value), 'Recettes']}
+                  />
+                  <Line type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={3} dot={{ fill: '#22c55e', r: 4 }} activeDot={{ r: 6, fill: '#22c55e' }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Monthly Breakdown Table */}
+            {revenue?.monthlyData && revenue.monthlyData.length > 0 && (
+              <div className="overflow-hidden rounded-3xl border border-white/5 bg-surface/30">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-black/20 text-gray-400">
+                    <tr>
+                      <th className="px-6 py-4 font-medium">Mois</th>
+                      <th className="px-6 py-4 text-right font-medium">Transactions</th>
+                      <th className="px-6 py-4 text-right font-medium">Volume</th>
+                      <th className="px-6 py-4 text-right font-medium">Recettes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {revenue.monthlyData.map((month) => (
+                      <tr key={month.month} className="text-gray-300 transition hover:bg-white/5">
+                        <td className="px-6 py-4 font-medium text-white">{month.month}</td>
+                        <td className="px-6 py-4 text-right">{month.count}</td>
+                        <td className="px-6 py-4 text-right">{formatCurrency(month.volume)}</td>
+                        <td className="px-6 py-4 text-right font-bold text-green-400">{formatCurrency(month.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

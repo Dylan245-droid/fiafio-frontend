@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Lock, User, Briefcase, ArrowLeft, CheckCircle, AlertTriangle, CreditCard, Building } from 'lucide-react';
+import { Phone, Lock, User, Briefcase, ArrowLeft, CheckCircle, AlertTriangle, Building, Code, RefreshCcw } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import OTPInput from '../components/OTPInput';
 
-type Step = 'TYPE' | 'INFO' | 'AGENT_RULES' | 'PAYMENT' | 'SUCCESS';
-type UserType = 'CLIENT' | 'AGENT';
+type Step = 'TYPE' | 'INFO' | 'OTP' | 'SUCCESS';
+type UserType = 'CLIENT' | 'AGENT' | 'MERCHANT';
 
-const MINIMUM_AGENT_FLOAT = 250_000; // 250,000 XAF minimum
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -20,15 +20,38 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [floatAmount, setFloatAmount] = useState(MINIMUM_AGENT_FLOAT.toString());
+  // Agent float will be handled in agent-specific pages
+  const [businessName, setBusinessName] = useState('');
+  
+  // OTP State
+  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const [timeLeft, setTimeLeft] = useState(0);
   
   // State
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [agreeToRules, setAgreeToRules] = useState(false);
+  // Terms agreement checkbox handled in form below
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(amount);
+  // Countdown timer for OTP
+  useEffect(() => {
+    if (!expiresAt) return;
+
+    const updateTimer = () => {
+      const now = new Date();
+      const diff = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
+      setTimeLeft(diff);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   const handleNext = () => {
     setError('');
@@ -41,6 +64,10 @@ export default function RegisterPage() {
         setError('Tous les champs sont requis');
         return;
       }
+      if (userType === 'MERCHANT' && !businessName) {
+        setError('Le nom de l\'entreprise est requis');
+        return;
+      }
       if (password !== confirmPassword) {
         setError('Les mots de passe ne correspondent pas');
         return;
@@ -51,22 +78,11 @@ export default function RegisterPage() {
       }
       
       if (userType === 'AGENT') {
-        setStep('AGENT_RULES');
+        // Agents go directly to register - activation will be done on dashboard
+        handleRegister();
       } else {
         handleRegister();
       }
-    } else if (step === 'AGENT_RULES') {
-      if (!agreeToRules) {
-        setError('Vous devez accepter les conditions pour continuer');
-        return;
-      }
-      setStep('PAYMENT');
-    } else if (step === 'PAYMENT') {
-      if (Number(floatAmount) < MINIMUM_AGENT_FLOAT) {
-        setError(`Le dépôt minimum est de ${formatCurrency(MINIMUM_AGENT_FLOAT)}`);
-        return;
-      }
-      handleRegister();
     }
   };
 
@@ -79,13 +95,17 @@ export default function RegisterPage() {
         phone,
         fullName,
         password,
-        role: userType,
-        initialFloat: userType === 'AGENT' ? Number(floatAmount) : undefined,
+        role: userType === 'MERCHANT' ? 'CLIENT' : userType, // Merchants start as clients
+        initialFloat: undefined, // Agents will activate from dashboard
+        createMerchant: userType === 'MERCHANT',
+        businessName: userType === 'MERCHANT' ? businessName : undefined,
       });
 
-      // Auto-login after registration
-      login(res.data.token, res.data.user);
-      setStep('SUCCESS');
+      // Registration successful - go to OTP step
+      if (res.data.requiresOTP) {
+        setExpiresAt(new Date(res.data.expiresAt));
+        setStep('OTP');
+      }
     } catch (err: any) {
       // Parse error message for clearer feedback
       const serverError = err.response?.data?.error;
@@ -109,6 +129,35 @@ export default function RegisterPage() {
     }
   };
 
+  const handleOTPComplete = async (code: string) => {
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await api.post('/auth/verify-otp', { phone, code });
+      login(res.data.token, res.data.user);
+      setStep('SUCCESS');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Code invalide');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await api.post('/auth/resend-otp', { phone });
+      setExpiresAt(new Date(res.data.expiresAt));
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Impossible de renvoyer le code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-background via-surface to-black px-4 py-8 font-sans text-white">
       {/* Background Glow */}
@@ -116,13 +165,11 @@ export default function RegisterPage() {
 
       <div className="relative z-10 mx-auto w-full max-w-md">
         {/* Back Button */}
-        {step !== 'SUCCESS' && (
+        {step !== 'SUCCESS' && step !== 'OTP' && (
           <button
             onClick={() => {
-              if (step === 'TYPE') navigate('/login');
+              if (step === 'TYPE') navigate('/');
               else if (step === 'INFO') setStep('TYPE');
-              else if (step === 'AGENT_RULES') setStep('INFO');
-              else if (step === 'PAYMENT') setStep('AGENT_RULES');
             }}
             className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition"
           >
@@ -141,15 +188,13 @@ export default function RegisterPage() {
           <h1 className="text-3xl font-bold tracking-tight">
             {step === 'TYPE' && 'Créer un Compte'}
             {step === 'INFO' && 'Vos Informations'}
-            {step === 'AGENT_RULES' && 'Conditions Agent'}
-            {step === 'PAYMENT' && 'Dépôt Initial'}
+            {step === 'OTP' && 'Vérification'}
             {step === 'SUCCESS' && 'Bienvenue !'}
           </h1>
           <p className="mt-2 text-gray-400">
             {step === 'TYPE' && 'Choisissez votre type de compte'}
             {step === 'INFO' && 'Remplissez vos informations personnelles'}
-            {step === 'AGENT_RULES' && 'Lisez et acceptez les conditions'}
-            {step === 'PAYMENT' && 'Effectuez votre dépôt de float initial'}
+            {step === 'OTP' && 'Entrez le code reçu par SMS'}
             {step === 'SUCCESS' && 'Votre compte a été créé avec succès'}
           </p>
         </div>
@@ -205,6 +250,28 @@ export default function RegisterPage() {
                 <p className="text-sm text-gray-400">Effectuer des dépôts et retraits pour clients</p>
               </div>
               {userType === 'AGENT' && (
+                <CheckCircle className="ml-auto h-6 w-6 text-primary" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setUserType('MERCHANT')}
+              className={`flex w-full items-center gap-4 rounded-2xl border p-6 transition ${
+                userType === 'MERCHANT'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-white/10 bg-surface/50 hover:border-white/20'
+              }`}
+            >
+              <div className={`flex h-14 w-14 items-center justify-center rounded-full ${
+                userType === 'MERCHANT' ? 'bg-primary text-black' : 'bg-surface text-gray-400'
+              }`}>
+                <Code className="h-7 w-7" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-xl font-bold">Marchand</h3>
+                <p className="text-sm text-gray-400">Accepter les paiements via API</p>
+              </div>
+              {userType === 'MERCHANT' && (
                 <CheckCircle className="ml-auto h-6 w-6 text-primary" />
               )}
             </button>
@@ -274,6 +341,19 @@ export default function RegisterPage() {
               />
             </div>
 
+            {userType === 'MERCHANT' && (
+              <div className="group relative">
+                <Building className="absolute left-4 top-4 h-5 w-5 text-gray-500 transition group-focus-within:text-primary" />
+                <input
+                  type="text"
+                  placeholder="Nom de l'entreprise"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-surface/50 px-12 py-4 text-white placeholder-gray-600 outline-none transition focus:border-primary/50 focus:bg-black/40"
+                />
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleNext}
@@ -285,131 +365,59 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Step: Agent Rules */}
-        {step === 'AGENT_RULES' && (
+        {/* Step: OTP Verification */}
+        {step === 'OTP' && (
           <div className="space-y-6">
-            <div className="rounded-2xl bg-surface/50 border border-white/10 p-6 space-y-4">
-              <h3 className="font-bold text-lg text-white">📋 Règles de Progression</h3>
-              
-              <div className="space-y-3 text-sm text-gray-300">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">🆕</span>
-                  <div>
-                    <p className="font-medium text-white">Niveau 1: Nouvel Agent</p>
-                    <p className="text-gray-400">Limite: 500,000 XAF/jour</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">✅</span>
-                  <div>
-                    <p className="font-medium text-white">Niveau 2: Confirmé (15 transactions)</p>
-                    <p className="text-gray-400">Limite: 2,000,000 XAF/jour</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">⭐</span>
-                  <div>
-                    <p className="font-medium text-white">Niveau 3: Vérifié (100 transactions)</p>
-                    <p className="text-gray-400">Limite: 5,000,000 XAF/jour</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">🏆</span>
-                  <div>
-                    <p className="font-medium text-white">Niveau 4: Super Agent (500 transactions)</p>
-                    <p className="text-gray-400">Limite: 20,000,000 XAF/jour</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-white/10 pt-4 space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <CreditCard className="h-4 w-4 text-primary" />
-                  <span>Commission: <strong className="text-primary">1.2%</strong> sur les retraits</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Building className="h-4 w-4 text-primary" />
-                  <span>Dépôt minimum: <strong className="text-primary">{formatCurrency(MINIMUM_AGENT_FLOAT)}</strong></span>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-yellow-500/10 p-4 text-sm text-yellow-400">
-              <AlertTriangle className="mr-2 inline h-4 w-4" />
-              Le float est VOTRE capital. Il vous sera intégralement restitué si vous quittez.
-            </div>
-
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreeToRules}
-                onChange={(e) => setAgreeToRules(e.target.checked)}
-                className="mt-1 h-5 w-5 rounded border-white/20 bg-surface text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-gray-300">
-                J'ai lu et j'accepte les conditions d'utilisation et les règles de progression des agents Fiafio.
-              </span>
-            </label>
-
             <button
               type="button"
-              onClick={handleNext}
-              disabled={!agreeToRules}
-              className="w-full rounded-2xl bg-primary py-4 font-bold text-black shadow-lg transition hover:scale-[1.02] disabled:opacity-50"
+              onClick={() => { setStep('INFO'); setError(''); }}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
             >
-              Continuer vers le paiement
+              <ArrowLeft className="h-4 w-4" />
+              Retour
             </button>
-          </div>
-        )}
 
-        {/* Step: Payment */}
-        {step === 'PAYMENT' && (
-          <div className="space-y-6">
-            <div className="rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 p-6 text-center">
-              <p className="text-gray-400 mb-2">Dépôt initial (Float)</p>
-              <div className="flex items-center justify-center gap-2">
-                <input
-                  type="number"
-                  value={floatAmount}
-                  onChange={(e) => setFloatAmount(e.target.value)}
-                  min={MINIMUM_AGENT_FLOAT}
-                  step={10000}
-                  className="w-48 bg-transparent text-center text-4xl font-bold text-primary outline-none"
-                />
-                <span className="text-xl text-gray-400">XAF</span>
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 text-primary">
+                <Lock className="h-8 w-8" />
               </div>
-              <p className="mt-2 text-sm text-gray-500">Minimum: {formatCurrency(MINIMUM_AGENT_FLOAT)}</p>
-            </div>
-
-            <div className="rounded-2xl bg-surface/50 border border-white/10 p-6">
-              <h3 className="font-medium text-white mb-4">💳 Méthode de paiement (Simulation)</h3>
-              
-              <div className="space-y-3">
-                <button type="button" className="w-full flex items-center gap-4 rounded-xl border border-primary/50 bg-primary/10 p-4">
-                  <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold">
-                    OM
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-white">Orange Money</p>
-                    <p className="text-sm text-gray-400">Simulé - Approbation instantanée</p>
-                  </div>
-                  <CheckCircle className="ml-auto h-5 w-5 text-primary" />
-                </button>
-              </div>
-
-              <p className="mt-4 text-xs text-gray-500 text-center">
-                🔒 Environnement de test - Aucun paiement réel effectué
+              <h2 className="text-2xl font-bold">Vérification OTP</h2>
+              <p className="mt-2 text-gray-400">
+                Entrez le code envoyé au <span className="text-white font-medium">{phone}</span>
               </p>
             </div>
 
+            {/* Countdown Timer */}
+            <div className="text-center">
+              <div className={`text-3xl font-bold ${timeLeft <= 60 ? 'text-red-500' : 'text-primary'}`}>
+                {formatTime(timeLeft)}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {timeLeft > 0 ? 'Temps restant' : 'Code expiré'}
+              </p>
+            </div>
+
+            {/* OTP Input */}
+            <OTPInput 
+              onComplete={handleOTPComplete} 
+              disabled={loading || timeLeft === 0}
+              error={error}
+            />
+
+            {/* Resend Button */}
             <button
               type="button"
-              onClick={handleNext}
+              onClick={handleResendOTP}
               disabled={loading}
-              className="w-full rounded-2xl bg-primary py-4 font-bold text-black shadow-lg transition hover:scale-[1.02] disabled:opacity-50"
+              className="mx-auto flex items-center gap-2 text-sm text-gray-400 hover:text-primary disabled:opacity-50"
             >
-              {loading ? 'Traitement...' : `Payer ${formatCurrency(Number(floatAmount))}`}
+              <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Renvoyer le code
             </button>
+
+            {loading && (
+              <p className="text-center text-sm text-gray-500">Vérification...</p>
+            )}
           </div>
         )}
 
@@ -426,18 +434,27 @@ export default function RegisterPage() {
             <div>
               <h2 className="text-2xl font-bold text-white">Compte créé !</h2>
               <p className="mt-2 text-gray-400">
-                {userType === 'AGENT' 
-                  ? `Votre float de ${formatCurrency(Number(floatAmount))} a été crédité.`
-                  : 'Vous pouvez maintenant utiliser Fiafio.'
-                }
+                {userType === 'AGENT' && 'Activez votre compte en effectuant votre premier dépôt float.'}
+                {userType === 'MERCHANT' && 'Votre compte marchand est prêt. Accédez à vos clés API.'}
+                {userType === 'CLIENT' && 'Vous pouvez maintenant utiliser Fiafio.'}
               </p>
             </div>
 
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => {
+                if (userType === 'MERCHANT') {
+                  navigate('/merchant');
+                } else if (userType === 'AGENT') {
+                  navigate('/agent-dashboard');
+                } else {
+                  navigate('/dashboard');
+                }
+              }}
               className="w-full rounded-2xl bg-primary py-4 font-bold text-black shadow-lg transition hover:scale-[1.02]"
             >
-              Accéder au tableau de bord
+              {userType === 'MERCHANT' ? 'Accéder au dashboard marchand' : 
+               userType === 'AGENT' ? 'Accéder au dashboard agent' : 
+               'Accéder au tableau de bord'}
             </button>
           </div>
         )}

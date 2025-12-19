@@ -8,6 +8,7 @@ interface User {
   role: 'CLIENT' | 'AGENT' | 'ADMIN';
   kycStatus: string;
   uniqueId: string;
+  hasMerchant?: boolean;
 }
 
 interface AuthContextType {

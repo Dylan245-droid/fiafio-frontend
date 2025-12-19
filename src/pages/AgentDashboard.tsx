@@ -8,7 +8,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { 
   ArrowDownLeft, Banknote, Wallet, History, RefreshCcw, LogOut,
   TrendingUp, Award, ChevronRight, AlertCircle, QrCode,
-  Search, CheckCircle, Delete, ArrowLeft, User, AlertTriangle
+  Search, CheckCircle, Delete, ArrowLeft, User, AlertTriangle,
+  Bell, XCircle, Clock, Eye, DollarSign
 } from 'lucide-react';
 import TransactionModal from '../components/TransactionModal';
 
@@ -67,10 +68,8 @@ interface Customer {
   fullName: string | null;
 }
 
-type View = 'DASHBOARD' | 'DEPOSIT' | 'WITHDRAW' | 'ACTIVATE' | 'MY_QR';
+type View = 'DASHBOARD' | 'DEPOSIT' | 'ACTIVATE' | 'MY_QR';
 type Step = 'CUSTOMER' | 'AMOUNT' | 'CONFIRM' | 'SUCCESS';
-
-const FEE_PERCENTAGE = 0.02;
 
 export default function AgentDashboard() {
   const navigate = useNavigate();
@@ -85,6 +84,12 @@ export default function AgentDashboard() {
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTxRef, setSelectedTxRef] = useState<string | null>(null);
+  const [selectedWithdrawalReq, setSelectedWithdrawalReq] = useState<any | null>(null);
+
+  // Pending requests
+  const [pendingFloatRequests, setPendingFloatRequests] = useState<any[]>([]);
+  const [pendingCancellations, setPendingCancellations] = useState<any[]>([]);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
 
   // Transaction flow
   const [customerQuery, setCustomerQuery] = useState('');
@@ -94,21 +99,27 @@ export default function AgentDashboard() {
   const [txRef, setTxRef] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  const fee = view === 'WITHDRAW' ? Math.round(Number(amount) * FEE_PERCENTAGE) : 0;
+  const fee = 0; // Deposit has no fee
 
   const fetchData = async () => {
     try {
       setRefreshing(true);
-      const [accRes, txRes, statsRes] = await Promise.all([
+      const [accRes, txRes, statsRes, floatReqRes, cancellationRes, withdrawalReqRes] = await Promise.all([
         api.get('/accounts/balance'),
         api.get('/accounts/history?limit=5'),
         api.get('/agent/stats'),
+        api.get('/float-requests/pending').catch(() => ({ data: { requests: [] } })),
+        api.get('/agent/cancellation-requests').catch(() => ({ data: { requests: [] } })),
+        api.get('/withdrawal-requests/pending').catch(() => ({ data: { requests: [] } })),
       ]);
       
       const accounts = accRes.data.accounts;
       setFloatBalance(accounts.find((a: any) => a.type === 'AGENT_FLOAT')?.balance || 0);
       setTransactions(txRes.data.transactions);
       setStats(statsRes.data);
+      setPendingFloatRequests(floatReqRes.data.requests || []);
+      setPendingCancellations(cancellationRes.data.requests || []);
+      setPendingWithdrawals(withdrawalReqRes.data.requests || []);
     } catch (error) {
       console.error('Failed to fetch data', error);
     } finally {
@@ -237,8 +248,8 @@ export default function AgentDashboard() {
   // Activation Flow
   if (view === 'ACTIVATE') {
     const handleActivate = async () => {
-      if (!amount || Number(amount) < 250000) {
-        setError('Montant minimum: 250 000 XAF');
+      if (!amount || Number(amount) < 100000) {
+        setError('Montant minimum: 100 000 XAF');
         return;
       }
       setProcessing(true);
@@ -273,7 +284,7 @@ export default function AgentDashboard() {
                   <Award className="h-8 w-8" />
                 </div>
                 <h2 className="text-2xl font-bold">Activer Votre Compte</h2>
-                <p className="mt-2 text-gray-400">Premier dépôt float (min 250 000 XAF)</p>
+                <p className="mt-2 text-gray-400">Premier dépôt float (min 100 000 XAF)</p>
               </div>
 
               {error && (
@@ -320,7 +331,7 @@ export default function AgentDashboard() {
                 <button
                   type="button"
                   onClick={handleActivate}
-                  disabled={processing || !amount || Number(amount) < 250000}
+                  disabled={processing || !amount || Number(amount) < 100000}
                   className="w-full rounded-2xl bg-yellow-500 py-4 font-bold text-black disabled:opacity-50"
                 >
                   {processing ? 'Traitement...' : 'Activer Mon Compte'}
@@ -597,7 +608,7 @@ export default function AgentDashboard() {
               <div>
                 <p className="font-medium text-yellow-400">Compte en attente d'activation</p>
                 <p className="text-sm text-gray-400">
-                  Effectuez votre premier dépôt float (min 250 000 XAF) avant le délai.
+                  Effectuez votre premier dépôt float (min 100 000 XAF) avant le délai.
                   {stats.activation.daysRemaining !== null && (
                     <span className="ml-1 font-bold text-yellow-500">
                       {stats.activation.daysRemaining} jour(s) restant(s)
@@ -677,20 +688,6 @@ export default function AgentDashboard() {
 
         <button
           type="button"
-          onClick={() => { setView('WITHDRAW'); resetFlow(); }}
-          className="flex flex-col items-center gap-2 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-center transition hover:bg-orange-500/20"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/20 text-orange-500">
-            <Banknote className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="font-bold text-white">Retrait</h3>
-            <p className="text-xs text-gray-400">Cash-Out</p>
-          </div>
-        </button>
-
-        <button
-          type="button"
           onClick={() => setView('MY_QR')}
           className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-surface/30 p-4 text-center transition hover:bg-surface/50"
         >
@@ -704,39 +701,306 @@ export default function AgentDashboard() {
         </button>
       </div>
 
+      {/* Requests Management Section - Always visible */}
+      <div className="mb-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <Bell className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold text-white">Gestion des Demandes</h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Float Requests Button */}
+          <button
+            type="button"
+            onClick={() => navigate('/float-request')}
+            className="relative flex flex-col items-center gap-2 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-center transition hover:bg-yellow-500/20"
+          >
+            {pendingFloatRequests.length > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-500 text-xs font-bold text-black">
+                {pendingFloatRequests.length}
+              </span>
+            )}
+            <Clock className="h-8 w-8 text-yellow-500" />
+            <div>
+              <p className="font-bold text-white">Demandes de Float</p>
+              <p className="text-xs text-gray-400">
+                {pendingFloatRequests.length > 0 
+                  ? `${pendingFloatRequests.length} en attente`
+                  : 'Aucune demande'
+                }
+              </p>
+            </div>
+          </button>
+
+          {/* Cancellation Requests Button */}
+          <button
+            type="button"
+            onClick={() => navigate('/cancellation-requests')}
+            className="relative flex flex-col items-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center transition hover:bg-red-500/20"
+          >
+            {pendingCancellations.length > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                {pendingCancellations.length}
+              </span>
+            )}
+            <XCircle className="h-8 w-8 text-red-500" />
+            <div>
+              <p className="font-bold text-white">Annulations</p>
+              <p className="text-xs text-gray-400">
+                {pendingCancellations.length > 0 
+                  ? `${pendingCancellations.length} en attente`
+                  : 'Aucune demande'
+                }
+              </p>
+            </div>
+          </button>
+
+          {/* Commissions Button */}
+          <button
+            type="button"
+            onClick={() => navigate('/agent-commissions')}
+            className="flex flex-col items-center gap-2 rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-center transition hover:bg-green-500/20"
+          >
+            <DollarSign className="h-8 w-8 text-green-500" />
+            <div>
+              <p className="font-bold text-white">Mes Commissions</p>
+              <p className="text-xs text-gray-400">Voir mes revenus</p>
+            </div>
+          </button>
+
+
+          {/* Withdraw Float Button */}
+          <button
+            type="button"
+            onClick={() => navigate('/agent-float-withdraw')}
+            className="relative flex flex-col items-center gap-2 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4 text-center transition hover:bg-purple-500/20"
+          >
+            {pendingWithdrawals.length > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                {pendingWithdrawals.length}
+              </span>
+            )}
+            <Wallet className="h-8 w-8 text-purple-500" />
+            <div>
+              <p className="font-bold text-white">Demandes de retrait</p>
+              <p className="text-xs text-gray-400">
+                {pendingWithdrawals.length > 0 
+                  ? `${pendingWithdrawals.length} à traiter`
+                  : 'Chez un autre agent'
+                }
+              </p>
+            </div>
+          </button>
+        </div>
+
+        {/* Inline Cancellation Requests if pending */}
+        {pendingCancellations.length > 0 && (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-4">
+            <p className="mb-3 text-sm font-medium text-red-400">Demandes d'annulation à traiter :</p>
+            <div className="space-y-2">
+              {pendingCancellations.slice(0, 3).map((req: any) => (
+                <div key={req.id} className="flex items-center justify-between rounded-xl bg-surface/50 p-3">
+                  <div>
+                    <p className="text-sm font-medium text-white">{req.userName || 'Client'}</p>
+                    <p className="text-xs text-gray-500">Réf: {req.transactionRef}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTxRef(req.transactionRef)}
+                      className="rounded-lg bg-blue-500/20 px-3 py-1.5 text-xs font-bold text-blue-400 hover:bg-blue-500/30"
+                      title="Voir la transaction"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const code = prompt('Saisissez le code de confirmation à 6 caractères:');
+                        if (!code || code.length !== 6) {
+                          alert('Code invalide. Le code doit contenir 6 caractères.');
+                          return;
+                        }
+                        try {
+                          await api.post(`/agent/cancellation-requests/${req.id}/approve`, { confirmationCode: code });
+                          alert('Annulation approuvée !');
+                          fetchData();
+                        } catch (e: any) {
+                          alert(e.response?.data?.error || 'Échec');
+                        }
+                      }}
+                      className="rounded-lg bg-green-500 px-3 py-1.5 text-xs font-bold text-black hover:bg-green-400"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const reason = prompt('Raison du refus ?');
+                        try {
+                          await api.post(`/agent/cancellation-requests/${req.id}/reject`, { reason });
+                          fetchData();
+                        } catch (e) { console.error(e); }
+                      }}
+                      className="rounded-lg bg-red-500/20 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/30"
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Inline Withdrawal Requests if pending */}
+        {pendingWithdrawals.length > 0 && (
+          <div className="rounded-2xl border border-orange-500/30 bg-orange-500/5 p-4">
+            <p className="mb-3 text-sm font-medium text-orange-400">Demandes de retrait à valider :</p>
+            <div className="space-y-2">
+              {pendingWithdrawals.slice(0, 3).map((req: any) => (
+                <div key={req.id} className="flex items-center justify-between rounded-xl bg-surface/50 p-3">
+                  <div>
+                    <p className="text-sm font-medium text-white">{req.requesterName || 'Client'}</p>
+                    <p className="text-xs text-orange-400 font-bold">{formatCurrency(req.amount)}</p>
+                    <p className="text-xs text-gray-500">{req.requesterPhone}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWithdrawalReq(req)}
+                      className="rounded-lg bg-blue-500/20 px-3 py-1.5 text-xs font-bold text-blue-400 hover:bg-blue-500/30"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const code = prompt('Saisissez le code de confirmation à 6 caractères:');
+                        if (!code || code.length !== 6) {
+                          alert('Code invalide. Le code doit contenir 6 caractères.');
+                          return;
+                        }
+                        try {
+                          await api.post(`/withdrawal-requests/${req.id}/approve`, { confirmationCode: code });
+                          alert('Retrait validé ! Remettez l\'argent au client.');
+                          fetchData();
+                        } catch (e: any) {
+                          alert(e.response?.data?.error || 'Échec');
+                        }
+                      }}
+                      className="rounded-lg bg-green-500 px-3 py-1.5 text-xs font-bold text-black hover:bg-green-400"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const reason = prompt('Raison du refus ?');
+                        try {
+                          await api.post(`/withdrawal-requests/${req.id}/reject`, { reason });
+                          fetchData();
+                        } catch (e) { console.error(e); }
+                      }}
+                      className="rounded-lg bg-red-500/20 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/30"
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Stats Grid */}
       {stats && (
         <div className="mb-6 space-y-4">
+          {/* Daily Volume Progress Card */}
+          <div className="rounded-2xl border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-400" />
+                <span className="font-medium text-white">Volume du Jour</span>
+              </div>
+              {stats.limits.remaining === Infinity ? (
+                <span className="rounded-full bg-yellow-500/20 px-2 py-1 text-xs font-medium text-yellow-400">
+                  ∞ Illimité
+                </span>
+              ) : (
+                <span className="text-sm text-gray-400">
+                  {stats.limits.percentage}% utilisé
+                </span>
+              )}
+            </div>
+            
+            <div className="mb-3">
+              <p className="text-3xl font-bold text-white">{formatCurrency(stats.limits.todayUsed)}</p>
+              {stats.limits.daily === Infinity ? (
+                <p className="text-sm text-yellow-400">🏆 Super Agent - Aucune limite quotidienne</p>
+              ) : (
+                <p className="text-sm text-gray-400">
+                  sur {formatCurrency(stats.limits.daily)} · Reste: <span className="text-blue-400 font-medium">{formatCurrency(stats.limits.remaining)}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Progress Bar - only show if not unlimited */}
+            {stats.limits.daily !== Infinity && (
+              <div className="h-3 overflow-hidden rounded-full bg-surface/50">
+                <div 
+                  className={`h-full transition-all duration-500 ${
+                    stats.limits.percentage >= 90 ? 'bg-red-500' : 
+                    stats.limits.percentage >= 70 ? 'bg-yellow-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${Math.min(stats.limits.percentage, 100)}%` }}
+                />
+              </div>
+            )}
+          </div>
+
           {/* Level Progress */}
           <div className="rounded-2xl border border-white/10 bg-surface/30 p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-primary" />
                 <span className="font-medium text-white">
-                  {stats.level.badge} Niveau {stats.level.key}: {stats.level.name}
+                  {stats.level.badge} {stats.level.name}
                 </span>
               </div>
-              {stats.level.isStagnating && (
-                <span className="flex items-center gap-1 rounded-full bg-yellow-500/10 px-2 py-1 text-xs text-yellow-500">
-                  <AlertCircle className="h-3 w-3" />
-                  Stagnant
+              {stats.level.nextLevel && (
+                <span className="text-xs text-gray-500">
+                  Prochain: {stats.level.nextLevel}
                 </span>
               )}
             </div>
             
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Progression</span>
-                <span className="text-white">
-                  {stats.totalTransactions} {stats.totalTransactions <= 1 ? 'transaction' : 'transactions'} · {stats.level.transactionsUntilNextLevel} pour niveau suivant
+                <span className="text-gray-400">Jours d'ancienneté</span>
+                <span className="text-white font-medium">
+                  {stats.level.daysActive} jours
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-surface">
-                <div 
-                  className="h-full bg-primary transition-all"
-                  style={{ width: `${stats.limits.percentage}%` }}
-                />
-              </div>
+              {stats.level.daysUntilNextLevel !== null && stats.level.daysUntilNextLevel > 0 && (
+                <>
+                  <div className="h-2 overflow-hidden rounded-full bg-surface">
+                    <div 
+                      className="h-full bg-primary transition-all"
+                      style={{ 
+                        width: `${Math.min(100, (stats.level.daysActive / (stats.level.daysActive + stats.level.daysUntilNextLevel)) * 100)}%` 
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Encore {stats.level.daysUntilNextLevel} jours pour passer au niveau suivant
+                  </p>
+                </>
+              )}
+              {stats.level.nextLevel === null && (
+                <p className="text-xs text-yellow-500">🏆 Niveau maximum atteint !</p>
+              )}
             </div>
           </div>
 
@@ -745,10 +1009,15 @@ export default function AgentDashboard() {
             <div className="rounded-2xl border border-white/5 bg-surface/30 p-4">
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <TrendingUp className="h-4 w-4" />
-                Volume Jour
+                Total Transactions
               </div>
-              <p className="mt-1 text-xl font-bold text-white">{formatCurrency(stats.limits.todayUsed)}</p>
-              <p className="text-xs text-gray-500">{stats.totalTransactions} opérations total</p>
+              <p className="mt-1 text-xl font-bold text-white">{stats.totalTransactions}</p>
+              <p className="text-xs text-gray-500">
+                {stats.level.daysUntilNextLevel !== null && stats.level.daysUntilNextLevel > 0
+                  ? `${stats.level.daysUntilNextLevel} jours restants`
+                  : 'Niveau max atteint 🏆'
+                }
+              </p>
             </div>
             <div className="rounded-2xl border border-white/5 bg-surface/30 p-4">
               <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -826,6 +1095,97 @@ export default function AgentDashboard() {
           onClose={() => setSelectedTxRef(null)}
           onCancellationRequested={fetchData}
         />
+      )}
+
+      {/* Withdrawal Request Detail Modal */}
+      {selectedWithdrawalReq && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-background border border-white/10 shadow-xl">
+            <div className="flex items-center justify-between border-b border-white/10 p-4">
+              <h3 className="text-lg font-bold text-white">Détails de la demande</h3>
+              <button onClick={() => setSelectedWithdrawalReq(null)} className="text-gray-400 hover:text-white">
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="rounded-xl bg-orange-500/10 p-4 text-center">
+                <p className="text-3xl font-bold text-orange-400">
+                  {formatCurrency(selectedWithdrawalReq.amount)}
+                </p>
+                {selectedWithdrawalReq.fee > 0 && (
+                  <p className="text-sm text-gray-400 mt-1">
+                    Frais: {formatCurrency(selectedWithdrawalReq.fee)}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Référence</span>
+                  <span className="font-mono text-white">{selectedWithdrawalReq.reference}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Demandeur</span>
+                  <span className="text-white">{selectedWithdrawalReq.requesterName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Téléphone</span>
+                  <span className="text-white">{selectedWithdrawalReq.requesterPhone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Date</span>
+                  <span className="text-white">{format(new Date(selectedWithdrawalReq.createdAt), 'dd/MM/yyyy HH:mm', { locale: fr })}</span>
+                </div>
+
+                {selectedWithdrawalReq.message && (
+                  <div className="border-t border-white/10 pt-3">
+                    <p className="text-gray-400 mb-1">Message</p>
+                    <p className="text-white italic">"{selectedWithdrawalReq.message}"</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={async () => {
+                    const code = prompt('Saisissez le code de confirmation à 6 caractères:');
+                    if (!code || code.length !== 6) {
+                      alert('Code invalide. Le code doit contenir 6 caractères.');
+                      return;
+                    }
+                    try {
+                      await api.post(`/withdrawal-requests/${selectedWithdrawalReq.id}/approve`, { confirmationCode: code });
+                      alert('Retrait validé ! Remettez l\'argent au client.');
+                      setSelectedWithdrawalReq(null);
+                      fetchData();
+                    } catch (e: any) {
+                      alert(e.response?.data?.error || 'Échec');
+                    }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-green-500 py-3 font-bold text-black hover:bg-green-400"
+                >
+                  <CheckCircle className="h-5 w-5" />
+                  Approuver
+                </button>
+                <button
+                  onClick={async () => {
+                    const reason = prompt('Raison du refus ?');
+                    try {
+                      await api.post(`/withdrawal-requests/${selectedWithdrawalReq.id}/reject`, { reason });
+                      setSelectedWithdrawalReq(null);
+                      fetchData();
+                    } catch (e) { console.error(e); }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-500 py-3 font-bold text-white hover:bg-red-400"
+                >
+                  <XCircle className="h-5 w-5" />
+                  Refuser
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

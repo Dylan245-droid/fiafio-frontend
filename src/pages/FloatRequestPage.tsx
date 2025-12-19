@@ -11,11 +11,12 @@ interface Agent {
 }
 
 interface FloatRequest {
+  id?: number;
   reference: string;
   amount: number;
   providerType: 'AGENT' | 'ADMIN';
   providerName: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED';
   message: string | null;
   responseNote: string | null;
   createdAt: string;
@@ -45,6 +46,7 @@ export default function FloatRequestPage() {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [existingRequest, setExistingRequest] = useState<{reference: string, amount: number, createdAt: string} | null>(null);
   const [success, setSuccess] = useState('');
 
   // History & pending state
@@ -58,7 +60,19 @@ export default function FloatRequestPage() {
       const timer = setTimeout(async () => {
         try {
           const res = await api.get(`/float-requests/agents?query=${agentQuery}`);
-          setAgents(res.data.agents);
+          const foundAgents = res.data.agents || [];
+          setAgents(foundAgents);
+
+          // console.log(foundAgents)
+          
+          // Auto-select if exact uniqueId match
+          const exactMatch = foundAgents.find(
+            (a: Agent) => a.uniqueId.toUpperCase() === agentQuery.toUpperCase()
+          );
+          if (exactMatch && !selectedAgent) {
+            setSelectedAgent(exactMatch);
+            setAgents([]);
+          }
         } catch (e) {
           console.error('Agent search failed', e);
         }
@@ -90,10 +104,12 @@ export default function FloatRequestPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setExistingRequest(null);
     setSuccess('');
     setSubmitting(true);
 
     try {
+      // console.log(selectedAgent)
       await api.post('/float-requests', {
         amount: Number(amount),
         providerType,
@@ -105,7 +121,12 @@ export default function FloatRequestPage() {
       setMessage('');
       setSelectedAgent(null);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'envoi');
+      const errorMsg = err.response?.data?.error || 'Erreur lors de l\'envoi';
+      setError(errorMsg);
+      // If there's an existing request, show its details
+      if (err.response?.data?.existingRequest) {
+        setExistingRequest(err.response.data.existingRequest);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -143,6 +164,7 @@ export default function FloatRequestPage() {
       case 'APPROVED': return 'text-green-400 bg-green-400/10';
       case 'REJECTED': return 'text-red-400 bg-red-400/10';
       case 'EXPIRED': return 'text-gray-400 bg-gray-400/10';
+      case 'CANCELLED': return 'text-orange-400 bg-orange-400/10';
       default: return 'text-gray-400';
     }
   };
@@ -153,9 +175,29 @@ export default function FloatRequestPage() {
       case 'APPROVED': return 'Approuvée';
       case 'REJECTED': return 'Refusée';
       case 'EXPIRED': return 'Expirée';
+      case 'CANCELLED': return 'Annulée';
       default: return status;
     }
   };
+
+  const [historyFilter, setHistoryFilter] = useState<string>('ALL');
+
+  const handleCancelRequest = async (reference: string) => {
+    if (!confirm('Annuler cette demande ?')) return;
+    try {
+      // Find the request to get its id
+      const req = myRequests.find(r => r.reference === reference);
+      if (!req) return;
+      await api.delete(`/float-requests/${req.id || reference}`);
+      setSuccess('Demande annulée');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Échec de l\'annulation');
+    }
+  };
+
+  const filteredRequests = historyFilter === 'ALL' 
+    ? myRequests 
+    : myRequests.filter(r => r.status === historyFilter);
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans text-white">
@@ -201,7 +243,24 @@ export default function FloatRequestPage() {
         </div>
 
         {error && (
-          <div className="mb-4 rounded-xl bg-red-500/10 p-4 text-center text-red-400">{error}</div>
+          <div className="mb-4 rounded-xl bg-red-500/10 p-4 text-red-400">
+            <p className="text-center font-medium">{error}</p>
+            {existingRequest && (
+              <div className="mt-3 rounded-lg bg-surface/50 p-3 text-sm">
+                <p className="text-gray-400">Demande existante :</p>
+                <div className="mt-2 flex justify-between">
+                  <span className="text-white">Réf: {existingRequest.reference}</span>
+                  <span className="font-bold text-white">{formatCurrency(existingRequest.amount)}</span>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Créée le {formatDate(existingRequest.createdAt)}
+                </p>
+                <p className="mt-2 text-xs text-yellow-400">
+                  💡 Attendez une réponse ou consultez l'onglet "Historique" pour annuler.
+                </p>
+              </div>
+            )}
+          </div>
         )}
         {success && (
           <div className="mb-4 rounded-xl bg-green-500/10 p-4 text-center text-green-400">{success}</div>
@@ -238,7 +297,7 @@ export default function FloatRequestPage() {
                 >
                   <Users className="mx-auto h-8 w-8" />
                   <p className="mt-1 font-medium">Agent</p>
-                  <p className="text-xs text-gray-500">0.5% frais</p>
+                  <p className="text-xs text-gray-500">0% frais</p>
                 </button>
               </div>
             </div>
@@ -319,7 +378,7 @@ export default function FloatRequestPage() {
 
             <button
               type="submit"
-              disabled={submitting || !amount || (providerType === 'AGENT' && !selectedAgent)}
+              disabled={submitting || !amount}
               className="w-full rounded-2xl bg-primary py-4 font-bold text-black transition hover:scale-[1.02] disabled:opacity-50"
             >
               {submitting ? 'Envoi...' : 'Envoyer la demande'}
@@ -374,16 +433,33 @@ export default function FloatRequestPage() {
         {/* History Tab */}
         {tab === 'history' && (
           <div className="space-y-4">
+            {/* Status Filter */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setHistoryFilter(s)}
+                  className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition ${
+                    historyFilter === s 
+                      ? 'bg-primary text-black' 
+                      : 'bg-surface text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {s === 'ALL' ? 'Toutes' : getStatusLabel(s)}
+                </button>
+              ))}
+            </div>
+            
             {loadingData ? (
               <div className="text-center text-gray-400">Chargement...</div>
-            ) : myRequests.length === 0 ? (
+            ) : filteredRequests.length === 0 ? (
               <div className="rounded-2xl bg-surface p-8 text-center text-gray-400">
                 <Send className="mx-auto mb-2 h-12 w-12 text-gray-600" />
-                <p>Aucune demande effectuée</p>
+                <p>Aucune demande {historyFilter !== 'ALL' ? 'avec ce statut' : ''}</p>
               </div>
             ) : (
-              myRequests.map((req) => (
-                <div key={req.reference} className="rounded-2xl bg-surface p-4">
+              filteredRequests.map((req) => (
+                <div key={req.reference} className={`rounded-2xl bg-surface p-4 ${req.status === 'CANCELLED' ? 'opacity-60' : ''}`}>
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="font-bold text-white">{formatCurrency(req.amount)}</p>
@@ -397,6 +473,14 @@ export default function FloatRequestPage() {
                     <p className="text-sm text-gray-400 italic">Réponse: {req.responseNote}</p>
                   )}
                   <p className="mt-2 text-xs text-gray-500">Réf: {req.reference} · {formatDate(req.createdAt)}</p>
+                  {req.status === 'PENDING' && (
+                    <button
+                      onClick={() => handleCancelRequest(req.reference)}
+                      className="mt-3 w-full rounded-xl bg-orange-500/20 py-2 text-sm font-medium text-orange-400 hover:bg-orange-500/30"
+                    >
+                      Annuler cette demande
+                    </button>
+                  )}
                 </div>
               ))
             )}

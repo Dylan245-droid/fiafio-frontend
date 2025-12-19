@@ -49,14 +49,36 @@ export default function TransactionModal({ reference, onClose, onCancellationReq
 
   const handleRequestCancellation = async () => {
     if (!transaction) return;
+    
+    const isP2P = transaction.type === 'P2P';
+    const confirmMsg = isP2P 
+      ? 'Annuler ce transfert ? Des frais de 5% seront appliqués.'
+      : 'Demander l\'annulation de ce retrait ? L\'agent devra confirmer (frais: 5%)';
+    
+    if (!confirm(confirmMsg)) return;
+    
     setCancelling(true);
     setError('');
 
     try {
-      await api.post('/agent/cancellation-requests', {
+      const res = await api.post('/agent/cancellation-requests', {
         transactionReference: transaction.reference,
       });
-      alert('Demande d\'annulation envoyée. Un agent examinera votre demande.');
+      
+      // Show appropriate message based on response
+      if (res.data.refundAmount) {
+        // P2P auto-canceled
+        const fee = res.data.fee || 0;
+        const refund = res.data.refundAmount;
+        alert(`✅ Transaction annulée !\n\nMontant remboursé: ${refund.toLocaleString()} FCFA\nFrais d'annulation: ${fee.toLocaleString()} FCFA`);
+      } else if (res.data.cancellation?.status === 'PENDING') {
+        // Withdrawal pending agent approval - show confirmation code
+        const code = res.data.cancellation.confirmationCode || '';
+        alert(`📨 Demande envoyée !\n\n🔐 CODE DE CONFIRMATION: ${code}\n\nDonnez ce code à l'agent pour qu'il puisse valider l'annulation.\nConservez-le précieusement !`);
+      } else {
+        alert(res.data.message || 'Demande traitée');
+      }
+      
       onCancellationRequested?.();
       onClose();
     } catch (err: any) {
@@ -81,7 +103,7 @@ export default function TransactionModal({ reference, onClose, onCancellationReq
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="relative w-full max-w-md rounded-3xl bg-background border border-white/10 p-6 shadow-2xl">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-background border border-white/10 p-6 shadow-2xl">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -166,8 +188,23 @@ export default function TransactionModal({ reference, onClose, onCancellationReq
                 <div className="flex justify-between border-b border-white/5 pb-3">
                   <span className="text-gray-400">À</span>
                   <div className="text-right">
-                    <p className="text-white">{transaction.receiver.fullName}</p>
-                    <p className="text-xs text-gray-500">{transaction.receiver.uniqueId}</p>
+                    {/* For MERCHANT_PAYMENT, show merchant name from description */}
+                    {transaction.type === 'MERCHANT_PAYMENT' && transaction.description ? (
+                      <>
+                        <p className="text-white font-bold">
+                          {transaction.description.match(/Payment to ([^(]+)/)?.[1]?.trim() || 
+                           transaction.description.match(/Payout from ([^(]+)/)?.[1]?.trim() ||
+                           'Marchand'}
+                        </p>
+                        <p className="text-xs text-gray-500">{transaction.receiver.fullName}</p>
+                        <p className="text-xs text-gray-600">{transaction.receiver.uniqueId}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-white">{transaction.receiver.fullName}</p>
+                        <p className="text-xs text-gray-500">{transaction.receiver.uniqueId}</p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -180,15 +217,19 @@ export default function TransactionModal({ reference, onClose, onCancellationReq
               )}
 
               {transaction.description && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Note</span>
-                  <span className="text-gray-300">{transaction.description}</span>
+                <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
+                  <span className="text-gray-400 text-sm">Note</span>
+                  <p className="text-gray-200 bg-white/5 rounded-xl p-3 text-sm leading-relaxed">
+                    {transaction.description}
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Cancellation Button */}
-            {transaction.canRequestCancellation && transaction.direction === 'OUT' && (
+            {/* Cancellation Button - Only for P2P and WITHDRAWAL, not REVERSAL */}
+            {transaction.canRequestCancellation && 
+             transaction.direction === 'OUT' && 
+             transaction.type !== 'REVERSAL' && (
               <button
                 onClick={handleRequestCancellation}
                 disabled={cancelling}
@@ -198,9 +239,9 @@ export default function TransactionModal({ reference, onClose, onCancellationReq
               </button>
             )}
 
-            {!transaction.canRequestCancellation && transaction.status === 'COMPLETED' && transaction.direction === 'OUT' && (
+            {!transaction.canRequestCancellation && transaction.status === 'REVERSED' && transaction.direction === 'OUT' && (
               <p className="text-center text-xs text-gray-500">
-                Cancellation window expired (30 min limit)
+                Cette transaction a déjà été annulée
               </p>
             )}
           </div>

@@ -64,7 +64,7 @@ export default function TransactionsPage() {
       {/* Header */}
       <div className="mb-6 flex items-center gap-4">
         <button
-          onClick={() => navigate('/agent-dashboard')}
+          onClick={() => navigate(-1)}
           className="rounded-full bg-surface p-2 text-gray-400 hover:bg-accent hover:text-white"
         >
           <ArrowLeft className="h-5 w-5" />
