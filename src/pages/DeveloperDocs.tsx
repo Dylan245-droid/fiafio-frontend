@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Copy, Check, Code, Key, Webhook, 
+  ArrowLeft, Copy, Check, Key, Webhook, 
   TestTube, ArrowRight, Terminal, ChevronRight,
   Zap, Shield, Globe, Send, CreditCard, AlertTriangle
 } from 'lucide-react';
