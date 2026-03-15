@@ -18,7 +18,7 @@ export default function ProtectedLayout() {
 
   return (
     <div className="min-h-screen bg-background text-white">
-      <main className="mx-auto max-w-md pb-20 sm:max-w-xl md:max-w-4xl lg:max-w-6xl">
+      <main className="mx-auto max-w-md px-4 pb-20 sm:max-w-xl md:max-w-4xl lg:max-w-6xl">
         <Outlet />
       </main>
     </div>

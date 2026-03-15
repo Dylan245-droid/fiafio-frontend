@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Lock, Phone, ArrowLeft, RefreshCcw } from 'lucide-react';
+import { Lock, Phone, ArrowLeft, RefreshCcw, Mail } from 'lucide-react';
 import OTPInput from '../components/OTPInput';
 
 type Step = 'CREDENTIALS' | 'OTP';
@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [notActivated, setNotActivated] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const { login } = useAuth();
@@ -53,13 +55,18 @@ export default function LoginPage() {
       
       if (response.data.requiresOTP) {
         setExpiresAt(new Date(response.data.expiresAt));
+        if (response.data.email) setUserEmail(response.data.email);
         setStep('OTP');
       }
     } catch (err: any) {
       const serverError = err.response?.data?.error;
       const status = err.response?.status;
+      const isNotActivatedFlag = err.response?.data?.isNotActivated;
       
-      if (serverError) {
+      if (isNotActivatedFlag) {
+        setNotActivated(true);
+        setError(serverError || "Votre compte n'est pas encore activé.");
+      } else if (serverError) {
         setError(serverError);
       } else if (status === 401) {
         setError('Numéro ou code PIN incorrect');
@@ -126,6 +133,14 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-surface/30 p-8 shadow-2xl backdrop-blur-xl">
         {step === 'CREDENTIALS' ? (
           <>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="mb-4 flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour à l'accueil
+            </button>
             <div className="mb-10 text-center">
               <img 
                 src="/fiafio_logo.png" 
@@ -164,6 +179,13 @@ export default function LoginPage() {
               {error && (
                 <div className="rounded-xl bg-red-500/10 p-4 text-center text-sm font-medium text-red-500">
                   {error}
+                </div>
+              )}
+
+              {notActivated && (
+                <div className="rounded-xl bg-yellow-500/10 p-4 text-center text-sm">
+                  <Mail className="inline h-4 w-4 mr-1 text-yellow-400" />
+                  <span className="text-yellow-400">Vérifiez votre boîte email pour le lien d'activation.</span>
                 </div>
               )}
 
@@ -208,7 +230,7 @@ export default function LoginPage() {
               </div>
               <h2 className="text-2xl font-bold">Vérification OTP</h2>
               <p className="mt-2 text-gray-400">
-                Entrez le code envoyé au <span className="text-white font-medium">{phone}</span>
+                Entrez le code envoyé à <span className="text-white font-medium">{userEmail || phone}</span>
               </p>
             </div>
 

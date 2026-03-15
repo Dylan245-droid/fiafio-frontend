@@ -4,60 +4,57 @@ import { ArrowUpRight, ArrowDownLeft, Wallet, History, RefreshCcw, LogOut, Clock
 import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { useAccounts } from '../hooks/useAccounts';
+import { useTransactions } from '../hooks/useTransactions';
 import TransactionModal from '../components/TransactionModal';
 import AgentStatsCard from '../components/AgentStatsCard';
 import PaymentRequestsCard from '../components/PaymentRequestsCard';
-
-interface Transaction {
-  reference: string;
-  type: string;
-  amount: number;
-  status: string;
-  createdAt: string;
-  direction: 'IN' | 'OUT';
-  description: string;
-}
-
-interface Account {
-  type: string;
-  balance: number;
-  currency: string;
-}
+import MandateRequestsCard from '../components/MandateRequestsCard';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  
+  // React Query hooks for auto-refresh
+  const { data: accountsData, isLoading: accountsLoading, refetch: refetchAccounts } = useAccounts();
+  const { data: transactions = [], isLoading: transactionsLoading, refetch: refetchTransactions } = useTransactions(5);
+  
+  const accounts = accountsData?.accounts || [];
+  const kycLimits = accountsData?.kycLimits || null;
+  
   const [cancellationRequests, setCancellationRequests] = useState<any[]>([]);
   const [withdrawalRequests, setWithdrawalRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedTxRef, setSelectedTxRef] = useState<string | null>(null);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const fetchData = async () => {
+  const loading = accountsLoading || transactionsLoading;
+
+  // Fetch additional data not covered by React Query
+  const fetchAdditionalData = async () => {
     try {
-      const [accRes, txRes, cancelRes, withdrawRes] = await Promise.all([
-        api.get('/accounts/balance'),
-        api.get('/accounts/history?limit=5'),
+      const [cancelRes, withdrawRes] = await Promise.all([
         api.get('/agent/my-cancellation-requests').catch(() => ({ data: { requests: [] } })),
         api.get('/withdrawal-requests/my').catch(() => ({ data: { requests: [] } })),
       ]);
-      setAccounts(accRes.data.accounts);
-      setTransactions(txRes.data.transactions);
       setCancellationRequests(cancelRes.data.requests || []);
       setWithdrawalRequests(withdrawRes.data.requests || []);
     } catch (error) {
-      console.error('Failed to fetch dashboard data', error);
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch additional data', error);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchAdditionalData();
   }, []);
+
+  // Redirect merchants to their dedicated portal
+  useEffect(() => {
+    if (user?.hasMerchant) {
+      navigate('/merchant', { replace: true });
+    }
+  }, [user?.hasMerchant, navigate]);
 
   const wallet = accounts.find((a) => a.type === 'WALLET') || { balance: 0 };
   const merchantAccount = accounts.find((a) => a.type === 'MERCHANT');
@@ -73,6 +70,13 @@ export default function Dashboard() {
     navigate('/login');
   };
 
+  // Refresh all data using React Query
+  const handleRefresh = () => {
+    refetchAccounts();
+    refetchTransactions();
+    fetchAdditionalData();
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour >= 17) return 'Bonsoir';
@@ -82,21 +86,24 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 px-4 py-6 md:px-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">{getGreeting()}, {user?.fullName?.split(' ')[0]}</h1>
-          <p className="text-gray-400">ID: <span className="font-mono text-primary">{user?.uniqueId}</span></p>
+          <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">
+            {getGreeting()}, {user?.fullName?.split(' ')[0]}
+          </h1>
+          <p className="text-sm text-gray-400">ID: <span className="font-mono text-primary">{user?.uniqueId}</span></p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <ThemeToggle />
           <button 
-            onClick={fetchData} 
-            className="rounded-full bg-surface p-2 text-gray-400 hover:bg-accent hover:text-primary"
+            onClick={handleRefresh} 
+            className="rounded-full bg-surface p-2 text-gray-400 hover:bg-accent hover:text-primary transition-colors"
           >
             <RefreshCcw className="h-5 w-5" />
           </button>
           <button 
             onClick={handleLogout} 
-            className="rounded-full bg-surface p-2 text-gray-400 hover:bg-red-500/20 hover:text-red-500"
+            className="rounded-full bg-surface p-2 text-gray-400 hover:bg-red-500/20 hover:text-red-500 transition-colors"
             title="Déconnexion"
           >
             <LogOut className="h-5 w-5" />
@@ -104,8 +111,30 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* KYC Verification Banner (for level 0 users) */}
+      {kycLimits?.kycLevel === 0 && user?.role === 'CLIENT' && (
+        <button
+          onClick={() => navigate('/kyc')}
+          className="w-full rounded-2xl bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 p-4 text-left transition hover:border-red-500/50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20">
+              <span className="text-xl">⚠️</span>
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-red-400">Vérification requise</p>
+              <p className="text-sm text-gray-400">Vérifiez votre identité pour effectuer des transactions</p>
+            </div>
+            <ArrowUpRight className="h-5 w-5 text-red-400" />
+          </div>
+        </button>
+      )}
+
+      {/* Mandate Requests (Subscriptions) */}
+      <MandateRequestsCard onMandateHandled={handleRefresh} />
+
       {/* Payment Requests from Merchants */}
-      <PaymentRequestsCard onRequestHandled={fetchData} />
+      <PaymentRequestsCard onRequestHandled={handleRefresh} />
 
       {/* Main Balance Card */}
       <div className="relative overflow-hidden rounded-3xl bg-primary p-6 text-black shadow-lg shadow-primary/20">
@@ -115,8 +144,8 @@ export default function Dashboard() {
             <Wallet className="h-5 w-5" />
             <span className="font-medium">Solde Total</span>
           </div>
-          <div className="mt-4 text-4xl font-bold tracking-tighter">
-            {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(totalBalance)}
+          <div className="mt-4 text-3xl sm:text-4xl font-bold tracking-tighter truncate">
+            {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(totalBalance)}
           </div>
           
           {/* Account breakdown for agents and merchants */}
@@ -162,50 +191,125 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className={`mt-6 grid gap-2 ${user?.role === 'AGENT' ? 'grid-cols-2' : 'grid-cols-3'}`}>
-            {/* Send button - only for regular users, not agents */}
-            {user?.role !== 'AGENT' && (
+          {/* Action Buttons with KYC restrictions */}
+          <div className="mt-6 relative">
+            <div className={`${user?.role === 'AGENT' ? 'grid-cols-2' : 'grid-cols-3'} grid gap-2 ${kycLimits && kycLimits.kycLevel === 0 && user?.role === 'CLIENT' ? 'opacity-50 pointer-events-none' : ''}`}>
+              {/* Send button - only for regular users, not agents */}
+              {user?.role !== 'AGENT' && (
+                <button 
+                  onClick={() => kycLimits && kycLimits.perTransaction > 0 && navigate('/transfer')}
+                  disabled={!kycLimits || kycLimits.perTransaction === 0}
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3 font-semibold backdrop-blur-sm transition hover:bg-black/20"
+                >
+                  <ArrowUpRight className="h-5 w-5" />
+                  <span className="text-xs">Envoyer</span>
+                </button>
+              )}
               <button 
-                onClick={() => navigate('/transfer')}
+                onClick={() => navigate('/deposit')}
                 className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3 font-semibold backdrop-blur-sm transition hover:bg-black/20"
               >
-                <ArrowUpRight className="h-5 w-5" />
-                <span className="text-xs">Envoyer</span>
+                <ArrowDownLeft className="h-5 w-5" />
+                <span className="text-xs">Recharger</span>
               </button>
+              <button 
+                onClick={() => kycLimits && kycLimits.perTransaction > 0 && navigate('/withdraw')}
+                disabled={!kycLimits || kycLimits.perTransaction === 0}
+                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/80 py-3 font-semibold text-white transition hover:bg-black"
+              >
+                <Wallet className="h-5 w-5" />
+                <span className="text-xs">Retrait</span>
+              </button>
+            </div>
+
+            {/* Overlay for KYC Level 0 - Bottom aligned */}
+            {kycLimits && kycLimits.kycLevel === 0 && user?.role === 'CLIENT' && (
+              <div className="absolute inset-x-0 bottom-0 rounded-b-xl bg-gradient-to-t from-black/90 to-black/70 backdrop-blur-sm p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-lg">🔒</span>
+                    <div>
+                      <p className="text-white text-sm font-medium">Vérification requise</p>
+                      <p className="text-gray-400 text-xs">Débloquez les transactions</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate('/kyc')}
+                    className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-bold text-black hover:bg-primary/90"
+                  >
+                    Vérifier
+                  </button>
+                </div>
+              </div>
             )}
-            <button 
-              onClick={() => navigate('/deposit')}
-              className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3 font-semibold backdrop-blur-sm transition hover:bg-black/20"
-            >
-              <ArrowDownLeft className="h-5 w-5" />
-              <span className="text-xs">Recharger</span>
-            </button>
-            <button 
-              onClick={() => navigate('/withdraw')}
-              className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/80 py-3 font-semibold text-white transition hover:bg-black"
-            >
-              <Wallet className="h-5 w-5" />
-              <span className="text-xs">Retrait</span>
-            </button>
           </div>
         </div>
       </div>
 
+      {/* KYC Limits Card (for clients only) */}
+      {kycLimits && user?.role === 'CLIENT' && (
+        <div className="rounded-2xl bg-surface/50 border border-white/10 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-400">Limites KYC (Niveau {kycLimits.kycLevel})</h3>
+            <span className="text-xs text-gray-500 px-2 py-1 bg-white/5 rounded-full">
+              {kycLimits.kycLevel === 1 ? 'Basique' : kycLimits.kycLevel === 2 ? 'Vérifié' : 'Premium'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl bg-white/5 p-3">
+              <p className="text-xs text-gray-500">Par transaction</p>
+              <p className="font-semibold text-white">{kycLimits.perTransaction.toLocaleString('fr-FR')} FCFA</p>
+            </div>
+            <div className="rounded-xl bg-white/5 p-3">
+              <p className="text-xs text-gray-500">Restant aujourd'hui</p>
+              <p className="font-semibold text-primary">{kycLimits.dailyRemaining.toLocaleString('fr-FR')} FCFA</p>
+            </div>
+          </div>
+          {kycLimits.kycLevel < 3 && (
+            <button
+              onClick={() => navigate('/kyc')}
+              className="w-full mt-3 rounded-xl bg-primary/20 py-2 text-sm font-medium text-primary hover:bg-primary/30 transition"
+            >
+              🆙 Augmenter mes limites
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Agent Operations Button (if agent) */}
       {user?.role === 'AGENT' && (
-        <div className="flex gap-3">
-          <button 
-            onClick={() => navigate('/agent')}
-            className="flex-1 rounded-2xl border border-dashed border-primary/50 bg-primary/10 py-4 font-semibold text-primary transition hover:bg-primary/20"
+        <div className="space-y-3">
+          {/* KYC Verification for Agents */}
+          <button
+            onClick={() => navigate('/kyc')}
+            className="w-full rounded-2xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-4 text-left transition hover:border-blue-500/40"
           >
-            🏦 Opérations Client
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20">
+                <span className="text-lg">🛡️</span>
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-blue-400">Vérification KYC</p>
+                <p className="text-sm text-gray-400">Niveau 2 requis pour activer le compte agent</p>
+              </div>
+              <ArrowUpRight className="h-5 w-5 text-blue-400" />
+            </div>
           </button>
-          <button 
-            onClick={() => navigate('/float-request')}
-            className="flex-1 rounded-2xl border border-dashed border-blue-500/50 bg-blue-500/10 py-4 font-semibold text-blue-400 transition hover:bg-blue-500/20"
-          >
-            💰 Demander Recharge
-          </button>
+
+          <div className="flex gap-3">
+            <button 
+              onClick={() => navigate('/agent')}
+              className="flex-1 rounded-2xl border border-dashed border-primary/50 bg-primary/10 py-4 font-semibold text-primary transition hover:bg-primary/20"
+            >
+              🏦 Opérations Client
+            </button>
+            <button 
+              onClick={() => navigate('/float-request')}
+              className="flex-1 rounded-2xl border border-dashed border-blue-500/50 bg-blue-500/10 py-4 font-semibold text-blue-400 transition hover:bg-blue-500/20"
+            >
+              💰 Demander Recharge
+            </button>
+          </div>
         </div>
       )}
 
@@ -405,7 +509,7 @@ export default function Dashboard() {
         <TransactionModal 
           reference={selectedTxRef} 
           onClose={() => setSelectedTxRef(null)}
-          onCancellationRequested={fetchData}
+          onCancellationRequested={handleRefresh}
         />
       )}
 
@@ -499,7 +603,7 @@ export default function Dashboard() {
                     try {
                       await api.post(`/withdrawal-requests/${selectedWithdrawal.id}/cancel`);
                       setSelectedWithdrawal(null);
-                      fetchData();
+                      handleRefresh();
                     } catch (err: any) {
                       alert(err.response?.data?.error || 'Échec de l\'annulation');
                     }

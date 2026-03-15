@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Smartphone, CreditCard, Check, Loader2, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 
 type PaymentMethod = 
@@ -33,6 +34,7 @@ type Step = 'method' | 'amount' | 'phone' | 'processing' | 'success' | 'redirect
 
 export default function DepositPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>('method');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [amount, setAmount] = useState('');
@@ -79,6 +81,8 @@ export default function DepositPage() {
         });
         
         if (res.data.success) {
+          queryClient.invalidateQueries({ queryKey: ['accounts'] });
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
           setStep('success');
         } else {
           setError(res.data.error || 'Échec du paiement');

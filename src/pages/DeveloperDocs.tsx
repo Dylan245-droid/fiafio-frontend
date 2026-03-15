@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
   ArrowLeft, Copy, Check, Key, Webhook, 
   TestTube, ArrowRight, ChevronRight,
-  Zap, Shield, Globe, Send, CreditCard, AlertTriangle
+  Zap, Shield, Globe, Send, CreditCard, AlertTriangle, Repeat
 } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 
 type Language = 'javascript' | 'python' | 'php' | 'curl';
-type Section = 'overview' | 'authentication' | 'checkout' | 'payment_request' | 'webhooks' | 'testing';
+type Section = 'overview' | 'authentication' | 'checkout' | 'payment_request' | 'direct_debit' | 'webhooks' | 'testing';
 
 const codeExamples: Record<string, Record<Language, string>> = {
   createCheckout: {
@@ -423,6 +425,187 @@ echo "Annulée: " . ($data['success'] ? 'oui' : 'non');`,
     curl: `curl -X POST https://api.fiafio.com/api/v1/payment-requests/pr_abc123/cancel \\
   -H "X-API-Key: sk_live_xxxxxxxxxxxx"`,
   },
+
+  // --- NOUVEAUX EXEMPLES POUR ABONNEMENTS ---
+
+  checkUser: {
+      javascript: `// 1. Vérifier si un utilisateur existe avant de créer un mandat
+const response = await fetch('https://api.fiafio.com/api/v1/users/ABC123', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer sk_live_xxxxxxxxxxxx'
+  }
+});
+
+if (response.status === 404) {
+    console.error('Utilisateur introuvable');
+} else {
+    const data = await response.json();
+    console.log('Utilisateur valide:', data.user.name_hint); // "Jea***"
+}`,
+      python: `import requests
+
+# 1. Vérifier si un utilisateur existe
+response = requests.get(
+    'https://api.fiafio.com/api/v1/users/ABC123',
+    headers={'Authorization': 'Bearer sk_live_xxxxxxxxxxxx'}
+)
+
+if response.status_code == 404:
+    print("Utilisateur introuvable")
+else:
+    data = response.json()
+    print(f"Utilisateur valide: {data['user']['name_hint']}")`,
+      php: `<?php
+// 1. Vérifier l'utilisateur
+$ch = curl_init('https://api.fiafio.com/api/v1/users/ABC123');
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer sk_live_xxxxxxxxxxxx']);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+if ($httpCode === 404) {
+    echo "Utilisateur introuvable";
+} else {
+    $data = json_decode($response, true);
+    echo "Utilisateur valide: " . $data['user']['name_hint'];
+}`,
+      curl: `curl -X GET https://api.fiafio.com/api/v1/users/ABC123 \\
+  -H "Authorization: Bearer sk_live_xxxxxxxxxxxx"`
+  },
+
+  createMandate: {
+      javascript: `// 2. Demander une autorisation de prélèvement (Mandat)
+const response = await fetch('https://api.fiafio.com/api/v1/mandates/request', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_live_xxxxxxxxxxxx',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    userId: 'ABC123',
+    maxAmount: 50000,
+    period: 'MONTHLY', // 'MONTHLY', 'WEEKLY', 'YEARLY'
+    description: 'Abonnement Salle de Sport'
+  })
+});
+
+const data = await response.json();
+console.log('Lien d\\'approbation:', data.approvalUrl);
+// Envoyez ce lien au client ou affichez le QR Code`,
+      python: `import requests
+
+# 2. Créer une demande de mandat
+response = requests.post(
+    'https://api.fiafio.com/api/v1/mandates/request',
+    headers={
+        'Authorization': 'Bearer sk_live_xxxxxxxxxxxx',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'userId': 'ABC123',
+        'maxAmount': 50000,
+        'period': 'MONTHLY',
+        'description': 'Abonnement Salle de Sport'
+    }
+)
+
+data = response.json()
+print(f"Lien d'approbation: {data['approvalUrl']}")`,
+      php: `<?php
+// 2. Créer un mandat
+$ch = curl_init('https://api.fiafio.com/api/v1/mandates/request');
+curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => [
+        'Authorization: Bearer sk_live_xxxxxxxxxxxx',
+        'Content-Type: application/json'
+    ],
+    CURLOPT_POSTFIELDS => json_encode([
+        'userId' => 'ABC123',
+        'maxAmount' => 50000,
+        'period' => 'MONTHLY',
+        'description' => 'Abonnement Salle de Sport'
+    ]),
+    CURLOPT_RETURNTRANSFER => true
+]);
+$data = json_decode(curl_exec($ch), true);
+echo "Lien d'approbation: " . $data['approvalUrl'];`,
+      curl: `curl -X POST https://api.fiafio.com/api/v1/mandates/request \\
+  -H "Authorization: Bearer sk_live_xxxxxxxxxxxx" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "userId": "ABC123",
+    "maxAmount": 50000,
+    "period": "MONTHLY",
+    "description": "Abonnement Salle de Sport"
+  }'`
+  },
+
+  directDebit: {
+      javascript: `// 3. Effectuer un prélèvement (une fois le mandat ACTIF)
+const response = await fetch('https://api.fiafio.com/api/v1/merchant/direct-debit', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_live_xxxxxxxxxxxx',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    mandate_id: 12, // ID reçu via webhook mandate.approved
+    amount: 35000,
+    description: 'Mensualité Janvier'
+  })
+});
+
+const data = await response.json();
+console.log('Succès:', data.success);
+console.log('Net reçu:', data.net_amount); // Montant moins les frais (Max 5000F)`,
+      python: `import requests
+
+# 3. Prélèvement
+response = requests.post(
+    'https://api.fiafio.com/api/v1/merchant/direct-debit',
+    headers={
+        'Authorization': 'Bearer sk_live_xxxxxxxxxxxx',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'mandate_id': 12,
+        'amount': 35000,
+        'description': 'Mensualité Janvier'
+    }
+)
+
+data = response.json()
+print(f"Succès: {data['success']}")
+print(f"Net reçu: {data['net_amount']}")`,
+      php: `<?php
+// 3. Prélèvement
+$ch = curl_init('https://api.fiafio.com/api/v1/merchant/direct-debit');
+curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => [
+        'Authorization: Bearer sk_live_xxxxxxxxxxxx',
+        'Content-Type: application/json'
+    ],
+    CURLOPT_POSTFIELDS => json_encode([
+        'mandate_id' => 12,
+        'amount' => 35000,
+        'description' => 'Mensualité Janvier'
+    ]),
+    CURLOPT_RETURNTRANSFER => true
+]);
+$data = json_decode(curl_exec($ch), true);
+echo "Net reçu: " . $data['net_amount'];`,
+      curl: `curl -X POST https://api.fiafio.com/api/v1/merchant/direct-debit \\
+  -H "Authorization: Bearer sk_live_xxxxxxxxxxxx" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "mandate_id": 12,
+    "amount": 35000,
+    "description": "Mensualité Janvier"
+  }'`
+  }
 };
 
 function CodeBlock({ code, language }: { code: string; language: string }) {
@@ -488,14 +671,23 @@ function LanguageTabs({
 
 export default function DeveloperDocs() {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [selectedLang, setSelectedLang] = useState<Language>('javascript');
   const [activeSection, setActiveSection] = useState<Section>('overview');
+
+  const getDashboardPath = () => {
+    if (!user) return '/login';
+    if (user.role === 'ADMIN') return '/admin';
+    if (user.role === 'AGENT') return '/agent';
+    return '/dashboard';
+  };
 
   const sections: { key: Section; icon: any; title: string }[] = [
     { key: 'overview', icon: Zap, title: 'Vue d\'ensemble' },
     { key: 'authentication', icon: Key, title: 'Authentification' },
     { key: 'checkout', icon: CreditCard, title: 'Checkout (Paiement)' },
     { key: 'payment_request', icon: Send, title: 'Demandes de paiement' },
+    { key: 'direct_debit', icon: Repeat, title: 'Prélèvements (Abonnements)' },
     { key: 'webhooks', icon: Webhook, title: 'Webhooks' },
     { key: 'testing', icon: TestTube, title: 'Mode test' },
   ];
@@ -522,13 +714,25 @@ export default function DeveloperDocs() {
                 </span>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/register')}
-              className="px-3 py-1.5 sm:px-5 sm:py-2 bg-primary text-black rounded-lg font-semibold text-xs sm:text-sm hover:scale-105 transition-transform"
-            >
-              <span className="sm:hidden">S'inscrire</span>
-              <span className="hidden sm:inline">Créer un compte</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              {isAuthenticated ? (
+                <button
+                  onClick={() => navigate(getDashboardPath())}
+                  className="px-3 py-1.5 sm:px-5 sm:py-2 bg-primary text-black rounded-lg font-semibold text-xs sm:text-sm hover:scale-105 transition-transform"
+                >
+                  Mon Espace
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/register')}
+                  className="px-3 py-1.5 sm:px-5 sm:py-2 bg-primary text-black rounded-lg font-semibold text-xs sm:text-sm hover:scale-105 transition-transform"
+                >
+                  <span className="sm:hidden">S'inscrire</span>
+                  <span className="hidden sm:inline">Créer un compte</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -778,25 +982,23 @@ Content-Type: application/json`}
                   </p>
                 </div>
 
-                <div className="p-8 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-center">
-                  <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CreditCard className="w-8 h-8 text-yellow-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-yellow-400 mb-2">🚧 Bientôt disponible</h3>
-                  <p className="text-gray-400 max-w-md mx-auto mb-4">
-                    La méthode Checkout (redirection vers page de paiement) est en cours de finalisation.
-                  </p>
-                  <p className="text-gray-500 text-sm">
-                    En attendant, utilisez les <strong className="text-primary">Demandes de paiement</strong> — 
-                    une méthode fiable et déjà en production.
-                  </p>
-                  <button
-                    onClick={() => setActiveSection('payment_request')}
-                    className="mt-6 px-6 py-3 bg-primary text-black rounded-xl font-semibold hover:scale-105 transition-transform flex items-center gap-2 mx-auto"
-                  >
-                    <Send className="w-4 h-4" />
-                    Voir Demandes de paiement
-                  </button>
+                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm mb-6">
+                    <strong>💰 Tarification :</strong> 1.5% + 25 FCFA par transaction (Plafonné à 5000 FCFA max).
+                    <br/>
+                    Exemple : Pour 35 000 FCFA, vous recevez 34 450 FCFA (Net).
+                </div>
+
+                <div className="p-6 rounded-xl bg-white/5 border border-white/10">
+                  <h3 className="font-bold text-white mb-4">Créer une session</h3>
+                  <code className="text-primary bg-black/40 px-3 py-2 rounded-lg text-sm">
+                    POST /api/v1/checkout/sessions
+                  </code>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-white mb-4">Exemple de code</h3>
+                  <LanguageTabs selected={selectedLang} onSelect={setSelectedLang} />
+                  <CodeBlock code={codeExamples.createCheckout[selectedLang]} language={selectedLang} />
                 </div>
 
                 <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm">
@@ -822,6 +1024,10 @@ Content-Type: application/json`}
 
                 <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm">
                   <strong>💡 Cas d'usage:</strong> Idéal pour les factures récurrentes, abonnements, ou quand vous connaissez l'ID Fiafio de votre client.
+                </div>
+
+                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm">
+                    <strong>💰 Tarification :</strong> 1.5% + 25 FCFA par transaction (Plafonné à 5000 FCFA max).
                 </div>
 
                 {/* Create Payment Request */}
@@ -1011,6 +1217,74 @@ Content-Type: application/json`}
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Direct Debit Section */}
+            {activeSection === 'direct_debit' && (
+              <div className="space-y-8">
+                <div>
+                  <h1 className="text-3xl font-bold mb-4">Prélèvements Automatiques</h1>
+                  <p className="text-gray-400">
+                    Débitez vos clients périodiquement pour des abonnements ou des paiements récurrents.
+                    Nécessite une autorisation préalable (Mandat).
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                   <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary mb-3">1</div>
+                      <h3 className="font-bold text-white mb-2">Vérifier</h3>
+                      <p className="text-gray-400 text-sm">Validez que l'ID Fiafio de votre client existe.</p>
+                   </div>
+                   <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary mb-3">2</div>
+                      <h3 className="font-bold text-white mb-2">Mandater</h3>
+                      <p className="text-gray-400 text-sm">Le client approuve un mandat (autorisation).</p>
+                   </div>
+                   <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                      <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center text-green-500 mb-3">3</div>
+                      <h3 className="font-bold text-white mb-2">Prélever</h3>
+                      <p className="text-gray-400 text-sm">Débitez le client selon vos besoins.</p>
+                   </div>
+                </div>
+
+                {/* Step 1: Verify */}
+                <div>
+                    <h2 className="text-xl font-bold text-white mb-4">Étape 1 : Vérifier l'utilisateur</h2>
+                    <p className="text-gray-400 mb-4 text-sm">
+                        Assurez-vous que l'identifiant saisi par votre client est valide avant de continuer.
+                    </p>
+                    <LanguageTabs selected={selectedLang} onSelect={setSelectedLang} />
+                    <CodeBlock code={codeExamples.checkUser[selectedLang]} language={selectedLang} />
+                </div>
+
+                {/* Step 2: Mandate */}
+                <div>
+                    <h2 className="text-xl font-bold text-white mb-4">Étape 2 : Créer le mandat</h2>
+                    <p className="text-gray-400 mb-4 text-sm">
+                        Vous recevrez un lien d'approbation. Le client doit cliquer dessus (ou scanner le QR code) pour valider le mandat.
+                        Une fois validé, vous recevrez un webhook <code>mandate.approved</code> contenant le <code>mandate_id</code>.
+                    </p>
+                    <CodeBlock code={codeExamples.createMandate[selectedLang]} language={selectedLang} />
+                </div>
+
+                {/* Step 3: Direct Debit */}
+                <div>
+                    <h2 className="text-xl font-bold text-white mb-4">Étape 3 : Effectuer un prélèvement</h2>
+                    <p className="text-gray-400 mb-4 text-sm">
+                        Utilisez l'ID du mandat pour débiter le client. L'argent est instantanément crédité sur votre compte Fiafio.
+                    </p>
+                    
+                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm mb-4">
+                        <strong>💰 Tarification :</strong> 1.5% + 25 FCFA par transaction (Plafonné à 5000 FCFA max).
+                        <br/>
+                        Exemple : Pour 35 000 FCFA, vous recevez 34 450 FCFA (Net).
+                    </div>
+
+                    <CodeBlock code={codeExamples.directDebit[selectedLang]} language={selectedLang} />
+                </div>
+
               </div>
             )}
 

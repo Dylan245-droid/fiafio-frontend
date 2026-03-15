@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { 
-  LayoutDashboard, Key, Receipt, Webhook, Settings, ArrowLeft,
+  LayoutDashboard, Key, Receipt, Webhook, Settings,
   Wallet, RefreshCcw, Copy, Check, Eye, EyeOff,
-  RotateCcw, Search, Save
+  RotateCcw, Search, Save, ArrowDownLeft, ArrowUpRight, History, LogOut
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { useAccounts } from '../hooks/useAccounts';
+import { useTransactions } from '../hooks/useTransactions';
+import TransactionModal from '../components/TransactionModal';
+import ThemeToggle from '../components/ThemeToggle';
 
 type Tab = 'DASHBOARD' | 'API_KEYS' | 'TRANSACTIONS' | 'WEBHOOKS' | 'SETTINGS';
 
@@ -38,13 +44,22 @@ interface Transaction {
   paidAt?: string;
 }
 
+
 export default function MerchantPortal() {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  
+  // React Query hooks for auto-refresh
+  const { data: accountsData, refetch: refetchAccounts } = useAccounts();
+  const { data: recentAccountTransactions = [], refetch: refetchRecentTx } = useTransactions(5);
+  
+  const accounts = accountsData?.accounts || [];
+  
   const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
-  const [balance, setBalance] = useState<number>(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTxRef, setSelectedTxRef] = useState<string | null>(null);
   
   // API Keys state
   const [showSecret, setShowSecret] = useState(false);
@@ -69,6 +84,12 @@ export default function MerchantPortal() {
   });
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Refresh function for React Query
+  const handleRefresh = () => {
+    refetchAccounts();
+    refetchRecentTx();
+  };
 
   useEffect(() => {
     fetchMerchantData();
@@ -95,11 +116,6 @@ export default function MerchantPortal() {
           defaultCurrency: res.data.defaultCurrency || 'XAF',
         });
       }
-
-      const balanceRes = await api.get('/merchant/balance');
-      if (balanceRes.data) {
-        setBalance(balanceRes.data.balance || 0);
-      }
     } catch (err) {
       console.error('Error fetching merchant data:', err);
     } finally {
@@ -110,12 +126,18 @@ export default function MerchantPortal() {
   const fetchTransactions = async () => {
     try {
       const params = new URLSearchParams({ page: txPage.toString(), limit: '10' });
-      if (txStatus !== 'all') params.append('status', txStatus);
+      if (txStatus !== 'all') params.append('status', txStatus.toUpperCase());
       
-      const res = await api.get(`/merchant/transactions?${params}`);
+      const res = await api.get(`/accounts/history?${params}`);
       if (res.data) {
-        setTransactions(res.data.data || []);
-        setTxMeta(res.data.meta);
+        setTransactions(res.data.transactions || []);
+        // Set pagination meta if available
+        if (res.data.meta) {
+          setTxMeta(res.data.meta);
+        } else {
+          // Create simple meta from data
+          setTxMeta({ total: res.data.transactions?.length || 0, lastPage: 1 });
+        }
       }
     } catch (err) {
       console.error('Error fetching transactions:', err);
@@ -185,25 +207,29 @@ export default function MerchantPortal() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-white">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="p-2 rounded-xl bg-surface border border-white/10 text-gray-400 hover:text-white hover:border-primary/30 transition-all"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-white">{merchant?.businessName || 'Portail Marchand'}</h1>
-            <p className="text-gray-500 text-sm">Gestion de votre compte marchand Fiafio</p>
-          </div>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white truncate max-w-[250px] sm:max-w-none">
+            {merchant?.businessName || 'Portail Marchand'}
+          </h1>
+          <p className="text-gray-500 text-xs sm:text-sm">ID: <span className="font-mono text-primary">{user?.uniqueId}</span></p>
         </div>
-        <button
-          onClick={fetchMerchantData}
-          className="p-2.5 bg-surface border border-white/10 rounded-xl text-gray-400 hover:text-primary hover:border-primary/30 transition-all"
-        >
-          <RefreshCcw className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <ThemeToggle />
+          <button
+            onClick={() => { fetchMerchantData(); handleRefresh(); }}
+            className="p-2 sm:p-2.5 bg-surface border border-white/10 rounded-xl text-gray-400 hover:text-primary hover:border-primary/30 transition-all"
+          >
+            <RefreshCcw className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => { logout(); navigate('/login'); }}
+            className="p-2 sm:p-2.5 bg-surface border border-white/10 rounded-xl text-gray-400 hover:bg-red-500/20 hover:text-red-500 hover:border-red-500/30 transition-all"
+            title="Déconnexion"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -212,13 +238,13 @@ export default function MerchantPortal() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               activeTab === tab.key
                 ? 'bg-primary text-black'
                 : 'bg-surface text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            <tab.icon className="w-4 h-4" />
+            <tab.icon className="w-4 h-4 shrink-0" />
             {tab.label}
           </button>
         ))}
@@ -227,21 +253,132 @@ export default function MerchantPortal() {
       {/* Dashboard Tab */}
       {activeTab === 'DASHBOARD' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-5 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl">
-              <div className="p-2.5 bg-primary/20 rounded-xl w-fit mb-3">
-                <Wallet className="w-5 h-5 text-primary" />
+          {/* KYC Verification Link */}
+          <button
+            onClick={() => navigate('/kyc')}
+            className="w-full rounded-2xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-4 text-left transition hover:border-blue-500/40"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20">
+                <span className="text-lg">🛡️</span>
               </div>
-              <div className="text-2xl font-bold text-white">{formatCurrency(balance)}</div>
-              <div className="text-gray-500 text-sm mt-1">Solde disponible</div>
+              <div className="flex-1">
+                <p className="font-semibold text-blue-400">Vérification KYC</p>
+                <p className="text-sm text-gray-400">Vérifiez votre identité pour débloquer toutes les fonctionnalités</p>
+              </div>
+              <ArrowUpRight className="h-5 w-5 text-blue-400" />
             </div>
+          </button>
 
+          {/* Main Balance Card */}
+          <div className="relative overflow-hidden rounded-3xl bg-primary p-6 text-black shadow-lg shadow-primary/20">
+            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 opacity-80">
+                <Wallet className="h-5 w-5" />
+                <span className="font-medium">Solde Total</span>
+              </div>
+              <div className="mt-4 text-3xl sm:text-4xl font-bold tracking-tighter truncate">
+                {formatCurrency(
+                  (accounts.find(a => a.type === 'WALLET')?.balance || 0) +
+                  (accounts.find(a => a.type === 'MERCHANT')?.balance || 0)
+                )}
+              </div>
+              
+              {/* Account breakdown */}
+              <div className="mt-4 space-y-2 rounded-xl bg-black/10 p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-black/40"></span>
+                    Mon Portefeuille
+                  </span>
+                  <span className="font-semibold">
+                    {new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'WALLET')?.balance || 0)} FCFA
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-600"></span>
+                    Mes Recettes Business
+                  </span>
+                  <span className="font-semibold">
+                    {new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'MERCHANT')?.balance || 0)} FCFA
+                  </span>
+                </div>
+              </div>
+
+              {/* Action buttons with KYC restrictions */}
+              <div className="mt-6 relative">
+                <div className={`grid grid-cols-3 gap-2 ${merchant?.kycStatus !== 'VERIFIED' ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <button 
+                    onClick={() => merchant?.kycStatus === 'VERIFIED' && navigate('/transfer')}
+                    disabled={merchant?.kycStatus !== 'VERIFIED'}
+                    className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3 font-semibold backdrop-blur-sm transition hover:bg-black/20"
+                  >
+                    <ArrowUpRight className="h-5 w-5" />
+                    <span className="text-xs">Envoyer</span>
+                  </button>
+                  <button 
+                    onClick={() => navigate('/deposit')}
+                    className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3 font-semibold backdrop-blur-sm transition hover:bg-black/20"
+                  >
+                    <ArrowDownLeft className="h-5 w-5" />
+                    <span className="text-xs">Recharger</span>
+                  </button>
+                  <button 
+                    onClick={() => merchant?.kycStatus === 'VERIFIED' && navigate('/withdraw')}
+                    disabled={merchant?.kycStatus !== 'VERIFIED'}
+                    className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/80 py-3 font-semibold text-white transition hover:bg-black"
+                  >
+                    <Wallet className="h-5 w-5" />
+                    <span className="text-xs">Retrait</span>
+                  </button>
+                </div>
+
+                {/* Overlay for non-verified merchants */}
+                {merchant && merchant.kycStatus !== 'VERIFIED' && (
+                  <div className="absolute inset-x-0 bottom-0 rounded-b-xl bg-gradient-to-t from-black/90 to-black/70 backdrop-blur-sm p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-lg">
+                          {merchant.kycStatus === 'PENDING' && '🔒'}
+                          {merchant.kycStatus === 'SUBMITTED' && '⏳'}
+                          {merchant.kycStatus === 'REJECTED' && '❌'}
+                        </span>
+                        <div>
+                          <p className="text-white text-sm font-medium">
+                            {merchant.kycStatus === 'PENDING' && 'Vérification requise'}
+                            {merchant.kycStatus === 'SUBMITTED' && 'En cours de revue'}
+                            {merchant.kycStatus === 'REJECTED' && 'Vérification refusée'}
+                          </p>
+                          <p className="text-gray-400 text-xs">
+                            {merchant.kycStatus === 'REJECTED' 
+                              ? 'Contactez le support' 
+                              : 'Débloquez les transactions'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigate('/kyc')}
+                        className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-bold text-black hover:bg-primary/90"
+                      >
+                        Vérifier
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-5 bg-surface border border-white/5 rounded-2xl">
               <div className="p-2.5 bg-blue-500/10 rounded-xl w-fit mb-3">
                 <Receipt className="w-5 h-5 text-blue-400" />
               </div>
-              <div className="text-2xl font-bold text-white">{txMeta?.total || 0}</div>
-              <div className="text-gray-500 text-sm mt-1">Total transactions</div>
+              <div className="text-2xl font-bold text-white">{recentAccountTransactions.length}</div>
+              <div className="text-gray-500 text-sm mt-1">Transactions récentes</div>
             </div>
 
             <div className="p-5 bg-surface border border-white/5 rounded-2xl">
@@ -272,6 +409,60 @@ export default function MerchantPortal() {
                 <span className="text-gray-500">Téléphone</span>
                 <span className="text-white">{merchant?.contactPhone || '-'}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Recent Activity Section */}
+          <div className="bg-surface border border-white/5 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-white">Activité Récente</h3>
+              <button 
+                onClick={() => setActiveTab('TRANSACTIONS')} 
+                className="text-sm text-primary hover:underline"
+              >
+                Voir Tout
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {recentAccountTransactions.length > 0 ? (
+                recentAccountTransactions.map((tx) => (
+                  <div 
+                    key={tx.reference}
+                    onClick={() => setSelectedTxRef(tx.reference)}
+                    className="flex items-center justify-between rounded-xl bg-background p-3 transition hover:bg-accent cursor-pointer hover:scale-[1.01]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                        tx.direction === 'IN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                      }`}>
+                        {tx.direction === 'IN' ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-white text-sm">{tx.type}</h4>
+                        <p className="text-xs text-gray-500">{format(new Date(tx.createdAt), 'dd MMM, HH:mm')}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`block font-semibold text-sm ${
+                        tx.direction === 'IN' ? 'text-green-500' : 'text-white'
+                      }`}>
+                        {tx.direction === 'IN' ? '+' : '-'}{formatCurrency(tx.amount)}
+                      </span>
+                      <span className={`text-xs ${
+                        tx.status === 'COMPLETED' ? 'text-green-500' : 'text-yellow-500'
+                      }`}>
+                        {tx.status === 'COMPLETED' ? 'Complété' : tx.status}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-gray-600">
+                  <History className="mx-auto mb-2 h-8 w-8 opacity-50" />
+                  Aucune transaction récente
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -379,27 +570,43 @@ export default function MerchantPortal() {
           <div className="bg-surface border border-white/5 rounded-2xl overflow-hidden">
             {transactions.length === 0 ? (
               <div className="px-5 py-12 text-center text-gray-600">
+                <History className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 Aucune transaction pour le moment
               </div>
             ) : (
               <div className="divide-y divide-white/5">
-                {transactions.map((tx) => (
-                  <div key={tx.id} className="px-5 py-4 hover:bg-white/[0.02] transition-colors">
+                {transactions.map((tx: any) => (
+                  <div 
+                    key={tx.reference} 
+                    onClick={() => setSelectedTxRef(tx.reference)}
+                    className="px-5 py-4 hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  >
                     <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-white text-sm font-medium">{tx.description || 'Paiement'}</div>
-                        <div className="text-gray-600 text-xs font-mono">{tx.id}</div>
-                        {tx.customerEmail && <div className="text-gray-500 text-xs">{tx.customerEmail}</div>}
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                          tx.direction === 'IN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                        }`}>
+                          {tx.direction === 'IN' ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
+                        </div>
+                        <div>
+                          <div className="text-white text-sm font-medium">{tx.type}</div>
+                          <div className="text-gray-600 text-xs font-mono">{tx.reference}</div>
+                          {tx.description && <div className="text-gray-500 text-xs">{tx.description}</div>}
+                        </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-white text-sm font-medium">+{formatCurrency(tx.netAmount || tx.amount)}</div>
+                        <div className={`text-sm font-semibold ${
+                          tx.direction === 'IN' ? 'text-green-500' : 'text-white'
+                        }`}>
+                          {tx.direction === 'IN' ? '+' : '-'}{formatCurrency(tx.amount)}
+                        </div>
                         <div className="text-gray-600 text-xs">{formatDate(tx.createdAt)}</div>
                         <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs ${
-                          tx.status === 'completed' ? 'bg-green-500/10 text-green-400' : 
-                          tx.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' : 
+                          tx.status === 'COMPLETED' ? 'bg-green-500/10 text-green-400' : 
+                          tx.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-400' : 
                           'bg-red-500/10 text-red-400'
                         }`}>
-                          {tx.status}
+                          {tx.status === 'COMPLETED' ? 'Complété' : tx.status}
                         </span>
                       </div>
                     </div>
@@ -574,6 +781,15 @@ export default function MerchantPortal() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Transaction Detail Modal */}
+      {selectedTxRef && (
+        <TransactionModal 
+          reference={selectedTxRef} 
+          onClose={() => setSelectedTxRef(null)}
+          onCancellationRequested={handleRefresh}
+        />
       )}
     </div>
   );

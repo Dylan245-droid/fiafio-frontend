@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Smartphone, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function CashInPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
   const [phone, setPhone] = useState(user?.phone || '');
   const [loading, setLoading] = useState(false);
@@ -29,11 +31,13 @@ export default function CashInPage() {
              // Redirect for real flows
              window.location.href = res.data.data.data.auth_url;
           } else {
+             queryClient.invalidateQueries({ queryKey: ['accounts'] });
+             queryClient.invalidateQueries({ queryKey: ['transactions'] });
              setStep('SUCCESS');
           }
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Deposit failed');
+      setError(err.response?.data?.error || 'Dépôt échoué');
     } finally {
       setLoading(false);
     }
@@ -47,7 +51,7 @@ export default function CashInPage() {
             className="flex items-center gap-2 rounded-full bg-surface/50 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-surface hover:text-white"
         >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Retour
         </button>
       </div>
 
@@ -58,13 +62,13 @@ export default function CashInPage() {
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-500">
                         <CreditCard className="h-8 w-8" />
                     </div>
-                    <h2 className="text-3xl font-bold text-white">Top Up Wallet</h2>
-                    <p className="mt-2 text-gray-400">Add funds via Mobile Money or Card</p>
+                    <h2 className="text-3xl font-bold text-white">Recharger le Portefeuille</h2>
+                    <p className="mt-2 text-gray-400">Ajoutez des fonds via Mobile Money ou Carte</p>
                 </div>
 
                 <form onSubmit={handleDeposit} className="space-y-6">
                     <div>
-                        <label className="text-sm font-medium text-gray-400">Amount (XAF)</label>
+                        <label className="text-sm font-medium text-gray-400">Montant (XAF)</label>
                         <div className="relative mt-2">
                             <span className="absolute left-4 top-4 text-xl font-bold text-gray-500">FCFA</span>
                             <input
@@ -80,7 +84,7 @@ export default function CashInPage() {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium text-gray-400">Mobile Money Number</label>
+                        <label className="text-sm font-medium text-gray-400">Numéro Mobile Money</label>
                         <div className="relative mt-2">
                              <Smartphone className="absolute left-4 top-4 h-6 w-6 text-gray-500" />
                             <input
@@ -101,7 +105,7 @@ export default function CashInPage() {
                     )}
 
                     <div className="rounded-xl bg-surface/50 p-4 text-xs text-gray-500">
-                        <p>Powered by <strong>Flutterwave</strong> (Simulated Mode). No real money will be charged.</p>
+                        <p>Propulsé par <strong>Flutterwave</strong> (Mode Simulé). Aucun argent réel ne sera débité.</p>
                     </div>
 
                     <button
@@ -109,7 +113,7 @@ export default function CashInPage() {
                         disabled={loading || !amount}
                         className="w-full rounded-2xl bg-green-500 py-4 font-bold text-black shadow-lg shadow-green-500/20 transition-transform hover:scale-[1.02] disabled:opacity-50"
                     >
-                        {loading ? 'Processing...' : 'Deposit Funds'}
+                        {loading ? 'Traitement...' : 'Déposer les fonds'}
                     </button>
                 </form>
             </div>
@@ -125,25 +129,25 @@ export default function CashInPage() {
                 </div>
                 
                 <div className="space-y-2">
-                    <h2 className="text-3xl font-bold text-white">Deposit Successful!</h2>
+                    <h2 className="text-3xl font-bold text-white">Dépôt Réussi !</h2>
                     <p className="text-xl text-green-500">
                         {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(Number(amount))}
                     </p>
-                    <p className="text-gray-400">Has been added to your wallet.</p>
+                    <p className="text-gray-400">A été ajouté à votre portefeuille.</p>
                 </div>
 
                 <div className="w-full rounded-2xl bg-surface p-4 text-left">
                     <div className="flex justify-between py-2 border-b border-white/5">
-                        <span className="text-gray-500">Transaction Ref</span>
+                        <span className="text-gray-500">Référence</span>
                         <span className="font-mono text-white text-sm">DEP-{Date.now().toString().slice(-6)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b border-white/5">
-                        <span className="text-gray-500">Payment Method</span>
+                        <span className="text-gray-500">Moyen de paiement</span>
                         <span className="text-white">Mobile Money</span>
                     </div>
                      <div className="flex justify-between py-2">
-                        <span className="text-gray-500">Status</span>
-                        <span className="text-green-500 font-bold">COMPLETED</span>
+                        <span className="text-gray-500">Statut</span>
+                        <span className="text-green-500 font-bold">COMPLÉTÉ</span>
                     </div>
                 </div>
 
@@ -151,7 +155,7 @@ export default function CashInPage() {
                     onClick={() => navigate('/dashboard')}
                     className="w-full max-w-xs rounded-2xl bg-surface py-4 font-semibold text-white hover:bg-surface/80"
                 >
-                    Done
+                    Terminé
                 </button>
             </div>
         )}

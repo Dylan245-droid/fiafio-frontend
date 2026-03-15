@@ -17,4 +17,277 @@ body {
   color: white;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ========== LIGHT THEME ========== */
+.light {
+  --color-primary: #4CAF50;
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-accent: #e2e8f0;
+}
+
+.light body,
+.light {
+  color: #1e293b;
+}
+
+/* Specific decorative glows to hide in light mode */
+.light .decorative-glow {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Background and surface */
+.light body { background-color: #f8fafc !important; }
+.light .bg-background { background-color: #f8fafc !important; }
+.light .bg-surface { background-color: #ffffff !important; }
+.light .bg-surface\/50 { background-color: rgba(255, 255, 255, 0.8); }
+.light .bg-surface\/30 { background-color: rgba(255, 255, 255, 0.6); }
+
+.cta-banner {
+  background-color: rgba(212, 255, 0, 0.1);
+  border-color: rgba(212, 255, 0, 0.2);
+}
+
+.light .cta-banner {
+  background-color: rgba(76, 175, 80, 0.15) !important;
+  border-color: rgba(76, 175, 80, 0.3) !important;
+}
+
+.themed-mobile-menu {
+  background-color: rgba(5, 5, 5, 0.95);
+}
+
+.light .themed-mobile-menu {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Text colors - better contrast for regular text */
+.light .text-white { color: #1e293b; }
+.light .text-gray-300 { color: #475569; }
+.light .text-gray-400 { color: #64748b; }
+.light .text-gray-500 { color: #94a3b8; }
+.light .text-gray-600 { color: #475569; }
+
+/* Buttons and badges with colored backgrounds - KEEP WHITE TEXT */
+.light .bg-blue-500,
+.light .bg-blue-600,
+.light .bg-green-500,
+.light .bg-green-600,
+.light .bg-red-500,
+.light .bg-orange-500,
+.light .bg-purple-500,
+.light .bg-primary {
+  color: white !important;
+}
+
+.light .bg-blue-500 *,
+.light .bg-blue-600 *,
+.light .bg-green-500 *,
+.light .bg-green-600 *,
+.light .bg-red-500 *,
+.light .bg-orange-500 *,
+.light .bg-purple-500 * {
+  color: white !important;
+}
+
+/* Primary button - WHITE text in light mode (green background) */
+.light .bg-primary,
+.light .bg-primary * {
+  color: #ffffff !important;
+}
+
+/* Preserve WHITE text on ALL dark backgrounds */
+.light .bg-black,
+.light .bg-black\/10,
+.light .bg-black\/20,
+.light .bg-black\/30,
+.light .bg-black\/40,
+.light .bg-black\/50,
+.light .bg-black\/60,
+.light .bg-black\/70,
+.light .bg-black\/80,
+.light .bg-black\/90,
+.light .bg-gray-800,
+.light .bg-gray-900,
+.light .bg-slate-800,
+.light .bg-slate-900,
+.light [class*="bg-black"] {
+  color: white !important;
+}
+
+.light .bg-black *,
+.light .bg-black\/30 *,
+.light .bg-black\/40 *,
+.light .bg-black\/50 *,
+.light .bg-black\/60 *,
+.light .bg-black\/70 *,
+.light .bg-black\/80 *,
+.light .bg-black\/90 *,
+.light .bg-gray-800 *,
+.light .bg-gray-900 *,
+.light .bg-slate-800 *,
+.light .bg-slate-900 *,
+.light [class*="bg-black"] * {
+  color: white !important;
+}
+
+/* Specific text color overrides inside dark backgrounds */
+.light .bg-black .text-gray-300,
+.light .bg-black .text-gray-400,
+.light .bg-black .text-gray-500,
+.light [class*="bg-black"] .text-gray-300,
+.light [class*="bg-black"] .text-gray-400,
+.light [class*="bg-black"] .text-gray-500 { 
+  color: #cbd5e1 !important; 
+}
+
+/* Borders */
+.light .border-white\/10 { border-color: rgba(0, 0, 0, 0.08); }
+.light .border-white\/5 { border-color: rgba(0, 0, 0, 0.04); }
+.light .border-white\/20 { border-color: rgba(0, 0, 0, 0.1); }
+
+/* 
+ * IMPORTANT: Dark backgrounds with opacity - make them OPAQUE in light mode
+ * This ensures badges and labels remain readable with white text
+ */
+.light .bg-black\/10 { background-color: #64748b !important; }
+.light .bg-black\/20 { background-color: #475569 !important; }
+.light .bg-black\/30 { background-color: #334155 !important; }
+.light .bg-black\/40 { background-color: #1e293b !important; }
+.light .bg-black\/50 { background-color: #1e293b !important; }
+.light .bg-black\/60 { background-color: #0f172a !important; }
+.light .bg-black\/70 { background-color: #0f172a !important; }
+.light .bg-black\/80 { background-color: #020617 !important; }
+.light .bg-black\/90 { background-color: #020617 !important; }
+
+/* Regular backgrounds with opacity - keep subtle */
+.light .bg-white\/5 { background-color: rgba(0, 0, 0, 0.02); }
+.light .bg-white\/10 { background-color: rgba(0, 0, 0, 0.04); }
+
+/* Shadows */
+.light .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04); }
+.light .shadow-primary\/20 { box-shadow: 0 10px 15px -3px rgba(76, 175, 80, 0.15); }
+.light .shadow-primary\/30 { box-shadow: 0 10px 15px -3px rgba(76, 175, 80, 0.2); }
+
+/* Cards and containers */
+.light .bg-gradient-to-br.from-background { background: #f8fafc; }
+
+/* Fix gradient backgrounds in light mode */
+.light .from-background.via-surface.to-black {
+  background: linear-gradient(to bottom right, #f8fafc, #ffffff, #e2e8f0) !important;
+}
+
+/* Primary colored elements text - keep readable */
+.light .text-primary { color: #2e7d32; }
+.light .text-blue-400 { color: #1976D2; }
+.light .text-green-400 { color: #388E3C; }
+.light .text-green-500 { color: #2e7d32; }
+.light .text-yellow-400 { color: #F57C00; }
+.light .text-yellow-500 { color: #EF6C00; }
+.light .text-red-400 { color: #D32F2F; }
+.light .text-red-500 { color: #C62828; }
+
+/* Hover states for links */
+.light .hover\:text-white:hover { color: #1e293b !important; }
+.light .hover\:text-primary:hover { color: #2e7d32 !important; }
+
+/* Code blocks - keep dark background for readability */
+.light pre {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #334155 !important;
+}
+
+.light pre * {
+  color: #e2e8f0 !important;
+}
+
+/* Inline code - subtle styling ONLY outside dark backgrounds */
+.light code:not(pre code):not([class*="bg-black"] code) {
+  background-color: #e2e8f0 !important;
+  color: #1e293b !important;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+}
+
+/* Code inside dark backgrounds - keep bright colors */
+.light [class*="bg-black"] code {
+  background-color: transparent !important;
+  color: #4ade80 !important;
+}
+
+.light [class*="bg-black"] code.text-red-400 {
+  color: #f87171 !important;
+}
+
+.light [class*="bg-black"] code.text-primary {
+  color: #4ade80 !important;
+}
+
+.light .font-mono:not(pre .font-mono):not(code .font-mono) {
+  color: inherit;
+}
+
+/* Colored badges and status indicators - softer colors */
+.light .bg-green-500\/10 { background-color: rgba(34, 197, 94, 0.1) !important; }
+.light .bg-green-500\/20 { background-color: rgba(34, 197, 94, 0.15) !important; }
+.light .bg-red-500\/10 { background-color: rgba(239, 68, 68, 0.1) !important; }
+.light .bg-red-500\/20 { background-color: rgba(239, 68, 68, 0.15) !important; }
+.light .bg-yellow-500\/10 { background-color: rgba(234, 179, 8, 0.1) !important; }
+.light .bg-yellow-500\/20 { background-color: rgba(234, 179, 8, 0.15) !important; }
+.light .bg-blue-500\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
+.light .bg-blue-500\/20 { background-color: rgba(59, 130, 246, 0.15) !important; }
+.light .bg-primary\/10 { background-color: rgba(76, 175, 80, 0.1) !important; }
+.light .bg-primary\/20 { background-color: rgba(76, 175, 80, 0.15) !important; }
+
+/* Alert/Error boxes - better light mode colors */
+.light .bg-red-500,
+.light .bg-red-600 {
+  background-color: #dc2626 !important;
+  color: white !important;
+}
+
+.light .bg-yellow-500,
+.light .bg-yellow-600 {
+  background-color: #ca8a04 !important;
+  color: white !important;
+}
+
+.light .bg-gray-500,
+.light .bg-gray-600 {
+  background-color: #64748b !important;
+  color: white !important;
+}
+
+.light .bg-gray-700,
+.light .bg-gray-800 {
+  background-color: #475569 !important;
+  color: white !important;
+}
+
+/* Dark backgrounds in light mode - FULLY OPAQUE for readability */
+.light .bg-black\/30,
+.light .bg-black\/40 {
+  background-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.light .bg-black\/30 *,
+.light .bg-black\/40 * {
+  color: #e2e8f0 !important;
+}
+
+/* Fix gradient cards in light mode */
+.light .from-primary\/10,
+.light .from-primary\/20 {
+  background: linear-gradient(to bottom right, rgba(76, 175, 80, 0.08), rgba(76, 175, 80, 0.03)) !important;
+}
+
+.light .from-yellow-500\/10,
+.light .from-orange-500\/10 {
+  background: linear-gradient(to bottom right, rgba(234, 179, 8, 0.08), rgba(249, 115, 22, 0.03)) !important;
 }

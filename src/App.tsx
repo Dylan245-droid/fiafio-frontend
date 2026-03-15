@@ -22,6 +22,9 @@ import CheckoutPage from './pages/CheckoutPage';
 import LandingPage from './pages/LandingPage';
 import MerchantPortal from './pages/MerchantPortal';
 import DeveloperDocs from './pages/DeveloperDocs';
+import MerchantLandingPage from './pages/MerchantLandingPage';
+import KycVerificationPage from './pages/KycVerificationPage';
+import ActivateAccountPage from './pages/ActivateAccountPage';
 
 function App() {
   return (
@@ -30,13 +33,15 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/merchants" element={<MerchantLandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/developers" element={<DeveloperDocs />} />
           <Route path="/pay/:sessionId" element={<PayPage />} />
           <Route path="/checkout/:sessionId" element={<CheckoutPage />} />
           <Route path="/qr-withdraw" element={<QRWithdrawPage />} />
-          
+          <Route path="/activate" element={<ActivateAccountPage />} />
+
           {/* Protected user routes */}
           <Route element={<ProtectedLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -53,6 +58,7 @@ function App() {
             <Route path="/cancellation-requests" element={<CancellationRequestsPage />} />
             <Route path="/admin" element={<AdminConsole />} />
             <Route path="/merchant" element={<MerchantPortal />} />
+            <Route path="/kyc" element={<KycVerificationPage />} />
           </Route>
 
         </Routes>

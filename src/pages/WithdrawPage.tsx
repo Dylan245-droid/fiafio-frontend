@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Banknote, Delete, AlertTriangle, Clock, Copy, Search, User } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 
 type Step = 'AGENT' | 'AMOUNT' | 'CONFIRM' | 'SUCCESS';
@@ -16,6 +17,7 @@ const FEE_PERCENTAGE = 0.02; // 2% fee
 
 export default function WithdrawPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>('AGENT');
   const [agentQuery, setAgentQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -118,6 +120,8 @@ export default function WithdrawPage() {
       });
       setConfirmationCode(res.data.request.confirmationCode);
       setRequestRef(res.data.request.reference);
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setStep('SUCCESS');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Échec de la création de la demande');

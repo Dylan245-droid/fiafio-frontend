@@ -1,57 +1,37 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Lock, User, Briefcase, ArrowLeft, CheckCircle, AlertTriangle, Building, Code, RefreshCcw } from 'lucide-react';
+import { Phone, Lock, User, Briefcase, ArrowLeft, CheckCircle, AlertTriangle, Building, Code, Mail } from 'lucide-react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import OTPInput from '../components/OTPInput';
-
-type Step = 'TYPE' | 'INFO' | 'OTP' | 'SUCCESS';
+type Step = 'TYPE' | 'INFO' | 'ACTIVATION_SENT' | 'SUCCESS';
 type UserType = 'CLIENT' | 'AGENT' | 'MERCHANT';
-
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const [step, setStep] = useState<Step>('TYPE');
   const [userType, setUserType] = useState<UserType>('CLIENT');
   
   // Form fields
   const [phone, setPhone] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [country, setCountry] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   // Agent float will be handled in agent-specific pages
   const [businessName, setBusinessName] = useState('');
-  
-  // OTP State
-  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
-  const [timeLeft, setTimeLeft] = useState(0);
-  
   // State
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  // Terms agreement checkbox handled in form below
 
-  // Countdown timer for OTP
+  // Auto-detect country from phone prefix
   useEffect(() => {
-    if (!expiresAt) return;
-
-    const updateTimer = () => {
-      const now = new Date();
-      const diff = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
-      setTimeLeft(diff);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [expiresAt]);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
+    if (phone.startsWith('+237')) setCountry('CM');
+    else if (phone.startsWith('+225')) setCountry('CI');
+    else if (phone.startsWith('+241')) setCountry('GA');
+    else if (phone.startsWith('+221')) setCountry('SN');
+    else if (phone.startsWith('+33')) setCountry('FR');
+  }, [phone]);
 
   const handleNext = () => {
     setError('');
@@ -60,7 +40,7 @@ export default function RegisterPage() {
       setStep('INFO');
     } else if (step === 'INFO') {
       // Validate
-      if (!phone || !fullName || !password) {
+      if (!phone || !email || !firstName || !lastName || !password) {
         setError('Tous les champs sont requis');
         return;
       }
@@ -93,7 +73,10 @@ export default function RegisterPage() {
     try {
       const res = await api.post('/auth/register', {
         phone,
-        fullName,
+        email,
+        firstName,
+        lastName,
+        country,
         password,
         role: userType === 'MERCHANT' ? 'CLIENT' : userType, // Merchants start as clients
         initialFloat: undefined, // Agents will activate from dashboard
@@ -101,10 +84,9 @@ export default function RegisterPage() {
         businessName: userType === 'MERCHANT' ? businessName : undefined,
       });
 
-      // Registration successful - go to OTP step
-      if (res.data.requiresOTP) {
-        setExpiresAt(new Date(res.data.expiresAt));
-        setStep('OTP');
+      // Registration successful - account needs activation
+      if (res.data.requiresActivation) {
+        setStep('ACTIVATION_SENT');
       }
     } catch (err: any) {
       // Parse error message for clearer feedback
@@ -129,34 +111,6 @@ export default function RegisterPage() {
     }
   };
 
-  const handleOTPComplete = async (code: string) => {
-    setError('');
-    setLoading(true);
-
-    try {
-      const res = await api.post('/auth/verify-otp', { phone, code });
-      login(res.data.token, res.data.user);
-      setStep('SUCCESS');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Code invalide');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    setError('');
-    setLoading(true);
-
-    try {
-      const res = await api.post('/auth/resend-otp', { phone });
-      setExpiresAt(new Date(res.data.expiresAt));
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Impossible de renvoyer le code');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-background via-surface to-black px-4 py-8 font-sans text-white">
@@ -165,7 +119,7 @@ export default function RegisterPage() {
 
       <div className="relative z-10 mx-auto w-full max-w-md">
         {/* Back Button */}
-        {step !== 'SUCCESS' && step !== 'OTP' && (
+        {step !== 'SUCCESS' && step !== 'ACTIVATION_SENT' && (
           <button
             onClick={() => {
               if (step === 'TYPE') navigate('/');
@@ -188,13 +142,13 @@ export default function RegisterPage() {
           <h1 className="text-3xl font-bold tracking-tight">
             {step === 'TYPE' && 'Créer un Compte'}
             {step === 'INFO' && 'Vos Informations'}
-            {step === 'OTP' && 'Vérification'}
+            {step === 'ACTIVATION_SENT' && 'Vérifiez votre email'}
             {step === 'SUCCESS' && 'Bienvenue !'}
           </h1>
           <p className="mt-2 text-gray-400">
             {step === 'TYPE' && 'Choisissez votre type de compte'}
             {step === 'INFO' && 'Remplissez vos informations personnelles'}
-            {step === 'OTP' && 'Entrez le code reçu par SMS'}
+            {step === 'ACTIVATION_SENT' && 'Un email d\'activation vous a été envoyé'}
             {step === 'SUCCESS' && 'Votre compte a été créé avec succès'}
           </p>
         </div>
@@ -296,16 +250,45 @@ export default function RegisterPage() {
         {/* Step: User Info */}
         {step === 'INFO' && (
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="group relative">
+                <User className="absolute left-4 top-4 h-5 w-5 text-gray-500 transition group-focus-within:text-primary" />
+                <input
+                  type="text"
+                  placeholder="Prénom"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-surface/50 px-12 py-4 text-white placeholder-gray-600 outline-none transition focus:border-primary/50 focus:bg-black/40"
+                  autoFocus
+                />
+              </div>
+              <div className="group relative">
+                <User className="absolute left-4 top-4 h-5 w-5 text-gray-500 transition group-focus-within:text-primary" />
+                <input
+                  type="text"
+                  placeholder="Nom"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-surface/50 px-12 py-4 text-white placeholder-gray-600 outline-none transition focus:border-primary/50 focus:bg-black/40"
+                />
+              </div>
+            </div>
+
             <div className="group relative">
-              <User className="absolute left-4 top-4 h-5 w-5 text-gray-500 transition group-focus-within:text-primary" />
-              <input
-                type="text"
-                placeholder="Nom complet"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-surface/50 px-12 py-4 text-white placeholder-gray-600 outline-none transition focus:border-primary/50 focus:bg-black/40"
-                autoFocus
-              />
+              <Building className="absolute left-4 top-4 h-5 w-5 text-gray-500 transition group-focus-within:text-primary" />
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-surface/50 px-12 py-4 text-white outline-none transition focus:border-primary/50 focus:bg-black/40 appearance-none cursor-pointer"
+              >
+                <option value="" disabled>Sélectionner votre pays</option>
+                <option value="CM">Cameroun (+237)</option>
+                <option value="CI">Côte d'Ivoire (+225)</option>
+                <option value="GA">Gabon (+241)</option>
+                <option value="SN">Sénégal (+221)</option>
+                <option value="FR">France (+33)</option>
+                <option value="UNKNOWN">Autre</option>
+              </select>
             </div>
 
             <div className="group relative">
@@ -315,6 +298,19 @@ export default function RegisterPage() {
                 placeholder="Numéro de téléphone (+237...)"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-surface/50 px-12 py-4 text-white placeholder-gray-600 outline-none transition focus:border-primary/50 focus:bg-black/40"
+              />
+            </div>
+
+            <div className="group relative">
+              <div className="absolute left-4 top-4 h-5 w-5 flex items-center justify-center">
+                 <span className="text-gray-500 font-bold">@</span>
+              </div>
+              <input
+                type="email"
+                placeholder="Adresse email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-2xl border border-white/10 bg-surface/50 px-12 py-4 text-white placeholder-gray-600 outline-none transition focus:border-primary/50 focus:bg-black/40"
               />
             </div>
@@ -365,59 +361,34 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Step: OTP Verification */}
-        {step === 'OTP' && (
-          <div className="space-y-6">
-            <button
-              type="button"
-              onClick={() => { setStep('INFO'); setError(''); }}
-              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour
-            </button>
-
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 text-primary">
-                <Lock className="h-8 w-8" />
+        {/* Step: Activation Email Sent */}
+        {step === 'ACTIVATION_SENT' && (
+          <div className="text-center space-y-6">
+            <div className="relative mx-auto">
+              <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+              <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary/20 text-primary">
+                <Mail className="h-12 w-12" />
               </div>
-              <h2 className="text-2xl font-bold">Vérification OTP</h2>
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-bold text-white">Email envoyé !</h2>
               <p className="mt-2 text-gray-400">
-                Entrez le code envoyé au <span className="text-white font-medium">{phone}</span>
+                Nous avons envoyé un lien d'activation à <span className="text-white font-medium">{email}</span>.
+                Cliquez sur le lien pour activer votre compte.
               </p>
             </div>
 
-            {/* Countdown Timer */}
-            <div className="text-center">
-              <div className={`text-3xl font-bold ${timeLeft <= 60 ? 'text-red-500' : 'text-primary'}`}>
-                {formatTime(timeLeft)}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {timeLeft > 0 ? 'Temps restant' : 'Code expiré'}
-              </p>
+            <div className="rounded-xl bg-white/5 p-4 text-sm text-gray-400">
+              <p>Pensez à vérifier vos <strong className="text-white">spams</strong> si vous ne trouvez pas l'email.</p>
             </div>
 
-            {/* OTP Input */}
-            <OTPInput 
-              onComplete={handleOTPComplete} 
-              disabled={loading || timeLeft === 0}
-              error={error}
-            />
-
-            {/* Resend Button */}
             <button
-              type="button"
-              onClick={handleResendOTP}
-              disabled={loading}
-              className="mx-auto flex items-center gap-2 text-sm text-gray-400 hover:text-primary disabled:opacity-50"
+              onClick={() => navigate('/login')}
+              className="w-full rounded-2xl bg-primary py-4 font-bold text-black shadow-lg transition hover:scale-[1.02]"
             >
-              <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Renvoyer le code
+              Aller à la connexion
             </button>
-
-            {loading && (
-              <p className="text-center text-sm text-gray-500">Vérification...</p>
-            )}
           </div>
         )}
 

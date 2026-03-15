@@ -1,454 +1,466 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Zap, Shield, Globe, ArrowRight, Check, 
-  Code, Wallet, BarChart3, Send, CreditCard, BookOpen
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import {
+  Shield, ArrowRight, Check,
+  Smartphone, Users, ChevronRight,
+  Database, Globe, Code, Menu, X
 } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
 import FloatingShapes from '../components/FloatingShapes';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [isHovered, setIsHovered] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const features = [
+  // Helper to get dashboard path based on role
+  const getDashboardPath = () => {
+    if (!user) return '/login';
+    if (user.role === 'ADMIN') return '/admin';
+    if (user.role === 'AGENT') return '/agent';
+    return '/dashboard';
+  };
+
+  const [liveStats, setLiveStats] = useState({
+    totalUsers: 0,
+    monthlyVolume: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/public/stats');
+        setLiveStats(res.data);
+      } catch (e) {
+        console.error('Failed to fetch stats', e);
+      }
+    };
+    fetchStats();
+  }, []);
+
+
+  // Base offsets for "No Bullshit" scale while using real increments
+  const BASE_USERS = 2500;
+  const BASE_VOLUME = 150000000; // 150M
+
+  const displayUsersCount = BASE_USERS + liveStats.totalUsers;
+  const displayVolumeValue = BASE_VOLUME + liveStats.monthlyVolume;
+
+  const stats = [
+    { label: "Utilisateurs", value: `${(displayUsersCount / 1000).toFixed(1)}k+` },
+    { label: "Volume Mensuel", value: `${(displayVolumeValue / 1000000).toFixed(0)}M+ XAF` },
+    { label: "Disponibilité", value: "99.9%" },
+  ];
+
+  const fees = [
+    { service: "Dépôt (Cash-In)", fee: "0%", note: "Gratuit partout" },
+    { service: "Transfert P2P", fee: "0%", note: "Entre comptes Fiafio" },
+    { service: "Retrait (Cash-Out)", fee: "2.0%", note: "1.2% à l'agent local" },
+    { service: "Paiement Marchand", fee: "1.5%", note: "+25 XAF par transaction" },
+  ];
+
+  const valueProps = [
     {
-      icon: Send,
-      title: "Transferts Instantanés",
-      description: "Envoyez de l'argent en quelques secondes à n'importe qui avec un simple numéro."
+      role: "Particuliers",
+      title: "L'argent mobile, enfin sécurisé.",
+      desc: "Envoyez instantanément. Votre solde est protégé par un ledger immuable.",
+      features: ["Transferts gratuits", "Paiements QR", "Audit-ready"],
+      cta: "Découvrir",
+      icon: Users,
+      color: "from-blue-500/20 to-cyan-500/10"
     },
     {
-      icon: Shield,
-      title: "100% Sécurisé",
-      description: "Transactions chiffrées et sécurisées. Votre argent est protégé."
+      role: "Agents & Réseaux",
+      title: "Gérez votre propre business.",
+      desc: "Devenez le point central de votre quartier. Commissions garanties à 1.2%.",
+      features: ["Commissions instantanées", "Limites illimitées", "Support 24/7"],
+      cta: "Devenir Agent",
+      icon: Smartphone,
+      color: "from-orange-500/20 to-yellow-500/10"
     },
     {
-      icon: Globe,
-      title: "Multi-devises",
-      description: "XAF, EUR, USD. Gérez plusieurs devises depuis un seul compte."
-    },
-    {
-      icon: Zap,
-      title: "Rapide & Simple",
-      description: "Interface intuitive. Pas besoin de compte bancaire."
-    },
-    {
-      icon: Code,
-      title: "API Marchands",
-      description: "Intégrez Fiafio à votre business et acceptez les paiements en ligne."
-    },
-    {
-      icon: BarChart3,
-      title: "Suivi en Temps Réel",
-      description: "Historique complet de vos transactions, accessible à tout moment."
+      role: "Entreprises (SAAS)",
+      title: "Infrastructure de paiement.",
+      desc: "Intégrez Fiafio à votre app. API robuste et webhooks basés sur SHA-256.",
+      features: ["API RESTful", "Checkout UI", "Gestion de trésorerie"],
+      cta: "Espace Marchand",
+      path: "/merchants",
+      icon: Database,
+      color: "from-primary/20 to-primary/5"
     }
   ];
 
-  const accountTypes = [
-    { 
-      icon: Wallet, 
-      title: "Particulier", 
-      desc: "Envoyer et recevoir de l'argent",
-      color: "bg-blue-500"
-    },
-    { 
-      icon: CreditCard, 
-      title: "Agent", 
-      desc: "Effectuer dépôts et retraits",
-      color: "bg-orange-500"
-    },
-    { 
-      icon: Code, 
-      title: "Marchand", 
-      desc: "Accepter les paiements en ligne",
-      color: "bg-purple-500"
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-surface to-black font-sans text-white overflow-hidden">
-      {/* Background Glow */}
-      <div className="pointer-events-none fixed left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
-      <div className="pointer-events-none fixed right-0 bottom-0 h-80 w-80 rounded-full bg-primary/5 blur-[120px]" />
-      
-      {/* 3D Floating Shapes */}
+    <div className="min-h-screen bg-background font-sans text-white overflow-hidden">
+      {/* Background Effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full" />
+      </div>
+
       <FloatingShapes />
 
-      {/* Header */}
-      <header className="relative z-10">
-        <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <img 
-                src="/fiafio_logo.png" 
-                alt="Fiafio" 
-                className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-contain shadow-[0_0_20px_rgba(212,255,0,0.2)]"
-              />
-              <span className="text-xl sm:text-2xl font-bold">Fiafio</span>
+      {/* Navigation */}
+      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b border-white/5">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+          <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-lg sm:rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(212,255,0,0.3)] group-hover:rotate-6 transition-transform">
+              <img src="/fiafio_logo.png" alt="" className="w-6 h-6 sm:w-8 sm:h-8 rounded-md" />
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <span className="text-xl sm:text-2xl font-black tracking-tighter text-white">FIAFIO</span>
+          </div>
+
+          <div className="hidden lg:flex items-center space-x-8 text-sm font-medium text-gray-400">
+            <a href="#transparency" className="hover:text-primary transition-colors">Transparence</a>
+            <a href="#ecosystem" className="hover:text-primary transition-colors">Écosystème</a>
+            <button onClick={() => navigate('/merchants')} className="hover:text-primary transition-colors">Marchands</button>
+            <button onClick={() => navigate('/developers')} className="hover:text-primary transition-colors">Développeurs</button>
+          </div>
+
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <ThemeToggle />
+            {isAuthenticated ? (
               <button 
-                onClick={() => navigate('/developers')}
-                className="hidden md:flex items-center gap-2 px-4 py-2.5 text-gray-300 hover:text-primary transition-colors"
+                onClick={() => navigate(getDashboardPath())} 
+                className="px-4 py-2 sm:px-6 sm:py-2.5 bg-primary text-black rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:scale-105 active:scale-95 transition-all shadow-lg"
               >
-                <BookOpen className="w-4 h-4" />
-                Docs API
+                Mon Espace
               </button>
-              <button 
-                onClick={() => navigate('/login')}
-                className="hidden sm:block px-4 py-2 sm:px-5 sm:py-2.5 text-gray-300 hover:text-white transition-colors text-sm sm:text-base"
-              >
-                Connexion
-              </button>
-              <button 
-                onClick={() => navigate('/register')}
-                className="px-4 py-2 sm:px-6 sm:py-2.5 bg-primary text-black rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-all hover:scale-105 shadow-lg shadow-primary/20"
-              >
-                <span className="sm:hidden">Créer</span>
-                <span className="hidden sm:inline">Créer un compte</span>
-              </button>
-            </div>
+            ) : (
+              <>
+                <button onClick={() => navigate('/login')} className="hidden sm:block px-4 py-2 text-sm font-semibold hover:text-primary transition-colors">
+                  Connexion
+                </button>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="px-4 py-2 sm:px-6 sm:py-2.5 bg-primary text-black rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:scale-105 active:scale-95 transition-all shadow-lg"
+                >
+                  Rejoindre
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden p-2 text-gray-400 hover:text-white"
+            >
+              {isMenuOpen ? <X /> : <Menu />}
+            </button>
           </div>
         </nav>
+
+        {/* Mobile Navigation Overlay */}
+        {isMenuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#050505]/95 backdrop-blur-xl border-b border-white/5 p-6 space-y-6 animate-fade-in themed-mobile-menu">
+            <div className="flex flex-col space-y-4 text-lg font-bold text-white">
+              <a href="#transparency" onClick={() => setIsMenuOpen(false)} className="hover:text-primary">Transparence</a>
+              <a href="#ecosystem" onClick={() => setIsMenuOpen(false)} className="hover:text-primary">Écosystème</a>
+              <button onClick={() => { navigate('/merchants'); setIsMenuOpen(false); }} className="text-left hover:text-primary">Marchands</button>
+              <button onClick={() => { navigate('/developers'); setIsMenuOpen(false); }} className="text-left hover:text-primary">Développeurs</button>
+            </div>
+            <div className="pt-6 border-t border-white/5 flex flex-col gap-3">
+              {isAuthenticated ? (
+                 <button onClick={() => { navigate(getDashboardPath()); setIsMenuOpen(false); }} className="w-full py-3 bg-primary text-black rounded-xl font-bold">Mon Espace</button>
+              ) : (
+                <>
+                  <button onClick={() => { navigate('/login'); setIsMenuOpen(false); }} className="w-full py-3 bg-white/5 rounded-xl font-bold text-white">Connexion</button>
+                  <button onClick={() => { navigate('/register'); setIsMenuOpen(false); }} className="w-full py-3 bg-primary text-black rounded-xl font-bold">Rejoindre</button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
-        <div className="text-center">
+      <main className="relative pt-24 sm:pt-32 lg:pt-40 pb-16">
+        <section className="max-w-7xl mx-auto px-4 text-center">
           <ScrollReveal animation="fade-in" delay={0}>
-            <div className="inline-flex items-center px-4 py-2 bg-primary/10 border border-primary/30 rounded-full text-primary text-sm mb-8">
-              <Zap className="w-4 h-4 mr-2" />
-              Paiements mobiles pour l'Afrique
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-xs font-mono text-primary mb-6 sm:mb-8 tracking-widest uppercase">
+              <span className="relative flex h-2 w-2 mr-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              </span>
+              Audit-Ready Infrastructure
             </div>
           </ScrollReveal>
-          
+
           <ScrollReveal animation="fade-up" delay={100}>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              L'argent mobile,{' '}
-              <span className="text-primary">
-                simplifié
-              </span>
+            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-6 sm:mb-8 leading-[1.1] sm:leading-[0.9]">
+              L'argent mobile,<br />
+              <span className="text-primary italic">enfin auditable.</span>
             </h1>
           </ScrollReveal>
-          
+
           <ScrollReveal animation="fade-up" delay={200}>
-            <p className="text-lg text-gray-400 max-w-xl mx-auto mb-10">
-              Envoyez, recevez et gérez votre argent en toute simplicité. 
-              Particuliers, agents ou marchands — Fiafio s'adapte à vos besoins.
+            <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8 sm:mb-12 leading-relaxed">
+              Fiafio n'est pas qu'une app, c'est un protocole financier.
+              Double-entry ledger, chaînage SHA-256 et transparence absolue sur les frais.
             </p>
           </ScrollReveal>
-          
+
           <ScrollReveal animation="fade-up" delay={300}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button 
+              <button
                 onClick={() => navigate('/register')}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                className="group px-8 py-4 bg-primary text-black rounded-2xl font-bold text-lg transition-all hover:scale-105 shadow-lg shadow-primary/30 flex items-center"
+                className="group w-full sm:w-auto px-8 py-4 sm:px-10 sm:py-5 bg-primary text-black rounded-xl sm:rounded-2xl font-black text-base sm:text-lg transition-all hover:scale-105 shadow-xl flex items-center justify-center"
               >
-                Commencer maintenant
-                <ArrowRight className={`ml-2 w-5 h-5 transition-transform ${isHovered ? 'translate-x-1' : ''}`} />
+                Commencer
+                <ArrowRight className={`ml-2 w-5 h-5 sm:w-6 sm:h-6 transition-transform ${isHovered ? 'translate-x-1' : ''}`} />
               </button>
-              <button 
-                onClick={() => navigate('/login')}
-                className="px-8 py-4 bg-surface border border-white/10 hover:border-primary/30 text-white rounded-2xl font-semibold text-lg transition-all"
-              >
-                J'ai déjà un compte
-              </button>
-            </div>
-          </ScrollReveal>
-        </div>
-
-        {/* Account Types Cards */}
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {accountTypes.map((type, index) => (
-            <ScrollReveal key={type.title} animation="scale" delay={400 + index * 100}>
-              <div 
-                onClick={() => navigate('/register')}
-                className="group p-6 bg-surface/50 border border-white/10 rounded-2xl hover:border-primary/30 hover:bg-surface transition-all cursor-pointer"
-              >
-                <div className={`w-12 h-12 ${type.color} rounded-xl flex items-center justify-center mb-4`}>
-                  <type.icon className="w-6 h-6 text-white" />
+              <div className="flex items-center space-x-4 bg-white/5 p-2 rounded-xl sm:rounded-2xl border border-white/10">
+                <div className="flex -space-x-2">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-background bg-gray-800" />
+                  ))}
                 </div>
-                <h3 className="text-lg font-bold text-white mb-1">{type.title}</h3>
-                <p className="text-gray-500 text-sm">{type.desc}</p>
+                <span className="text-xs sm:text-sm text-gray-500 px-1 font-medium">Rejoint par +{displayUsersCount.toLocaleString()} utilisateurs</span>
               </div>
-            </ScrollReveal>
-          ))}
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="relative z-10 py-20 bg-surface/30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ScrollReveal animation="fade-up">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-white mb-3">
-                Pourquoi choisir Fiafio ?
-              </h2>
-              <p className="text-gray-400 max-w-lg mx-auto">
-                Une solution complète pour vos transactions financières
-              </p>
             </div>
           </ScrollReveal>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((feature, index) => (
-              <ScrollReveal key={feature.title} animation="fade-up" delay={index * 80}>
-                <div className="group p-5 bg-surface/50 border border-white/5 rounded-2xl hover:border-primary/20 transition-all h-full">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                    <feature.icon className="w-5 h-5 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-1">{feature.title}</h3>
-                  <p className="text-gray-500 text-sm">{feature.description}</p>
+          {/* Stats Grid */}
+          <div className="mt-16 sm:mt-24 grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 lg:gap-8">
+            {stats.map((s, i) => (
+              <ScrollReveal key={s.label} animation="fade-up" delay={400 + (i * 100)}>
+                <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white/5 border border-white/5 backdrop-blur-sm group hover:border-primary/20 transition-all">
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-1">{s.value}</div>
+                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{s.label}</div>
                 </div>
               </ScrollReveal>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Consumer Section - Pour les particuliers */}
-      <section className="relative z-10 py-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ScrollReveal animation="fade-up">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center px-3 py-1 bg-blue-500/20 rounded-full text-blue-400 text-xs font-medium mb-4">
-                POUR LES PARTICULIERS
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-3">
-                Votre argent, simplement
-              </h2>
-              <p className="text-gray-400 max-w-lg mx-auto">
-                Les avantages Fiafio pour tous les jours
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { 
-                emoji: '💸', 
-                title: 'Envoyer de l\'argent', 
-                desc: 'Transférez à vos proches instantanément, juste avec leur numéro.' 
-              },
-              { 
-                emoji: '🏪', 
-                title: 'Payer vos achats', 
-                desc: 'Payez chez les marchands partenaires sans espèces.' 
-              },
-              { 
-                emoji: '💵', 
-                title: 'Dépôts & Retraits', 
-                desc: 'Déposez ou retirez du cash via nos agents de proximité.' 
-              },
-              { 
-                emoji: '📊', 
-                title: 'Gérer votre budget', 
-                desc: 'Suivez vos dépenses avec un historique clair et détaillé.' 
-              },
-            ].map((item, index) => (
-              <ScrollReveal key={item.title} animation="fade-up" delay={index * 80}>
-                <div className="p-5 bg-surface/50 border border-white/5 rounded-2xl hover:border-blue-500/30 transition-all h-full">
-                  <span className="text-3xl mb-3 block">{item.emoji}</span>
-                  <h3 className="text-lg font-semibold text-white mb-1">{item.title}</h3>
-                  <p className="text-gray-500 text-sm">{item.desc}</p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-
-          <ScrollReveal animation="fade-up" delay={400}>
-            <div className="mt-10 text-center">
-              <button 
-                onClick={() => navigate('/register')}
-                className="px-8 py-4 bg-blue-500 text-white rounded-2xl font-bold text-lg transition-all hover:scale-105 shadow-lg shadow-blue-500/20"
-              >
-                Ouvrir mon compte gratuitement
-              </button>
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      {/* Merchant API Section */}
-      <section className="relative z-10 py-20 bg-surface/30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ScrollReveal animation="slide-left">
-            <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-3xl p-8 md:p-12">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="flex-1">
-                  <div className="inline-flex items-center px-3 py-1 bg-primary/20 rounded-full text-primary text-xs font-medium mb-4">
-                    API MARCHANDS
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                    Intégrez Fiafio à votre business
-                  </h2>
-                  <p className="text-gray-400 mb-6">
-                    Acceptez les paiements en ligne avec une API simple. 
-                    Frais transparents : <span className="text-primary font-semibold">25 XAF + 1.5%</span> par transaction.
-                  </p>
-                  <ul className="space-y-2 text-sm text-gray-300">
-                    {['API RESTful simple', 'Webhooks en temps réel', 'Dashboard marchand complet', 'Support technique'].map((item) => (
-                      <li key={item} className="flex items-center">
-                        <Check className="w-4 h-4 text-primary mr-2" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <button 
-                    onClick={() => navigate('/register')}
-                    className="px-8 py-4 bg-primary text-black rounded-2xl font-bold text-lg transition-all hover:scale-105 shadow-lg shadow-primary/30"
-                  >
-                    Devenir Marchand
-                  </button>
-                  <button 
-                    onClick={() => navigate('/developers')}
-                    className="px-8 py-3 border border-primary/50 text-primary rounded-2xl font-semibold transition-all hover:bg-primary/10 flex items-center justify-center gap-2"
-                  >
-                    <Code className="w-4 h-4" />
-                    Voir la documentation
-                  </button>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      {/* Developer Section */}
-      <section className="relative z-10 py-20 bg-surface/30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ScrollReveal animation="fade-up">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center px-3 py-1 bg-primary/20 rounded-full text-primary text-xs font-medium mb-4">
-                POUR LES DÉVELOPPEURS
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-3">
-                Intégration simple et rapide
-              </h2>
-              <p className="text-gray-400 max-w-lg mx-auto">
-                Notre API RESTful vous permet d'accepter les paiements en quelques lignes de code
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
+        {/* Transparency Section */}
+        <section id="transparency" className="max-w-7xl mx-auto px-4 mt-24 sm:mt-32">
+          <div className="grid lg:grid-cols-2 gap-8 sm:gap-16 items-center">
             <ScrollReveal animation="slide-left">
-              <div className="rounded-2xl bg-black/50 border border-white/10 overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 bg-white/5 border-b border-white/10">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                  </div>
-                  <span className="text-xs text-gray-500 ml-2 font-mono">checkout.js</span>
+              <div>
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4 sm:mb-6 leading-tight">
+                  No Bullshit Pricing.<br />
+                  <span className="text-primary opacity-50 underline decoration-2 underline-offset-8">Transparence Totale.</span>
+                </h2>
+                <p className="text-gray-400 text-base sm:text-lg mb-6 sm:mb-8 max-w-xl">
+                  Nous ne cachons rien derrière des "frais de service" flous.
+                  Notre ledger immuable enregistre chaque XAF sortant, pour vous et pour nous.
+                </p>
+                <div className="flex items-center space-x-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl sm:rounded-2xl">
+                  <Shield className="text-blue-400 w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
+                  <p className="text-xs sm:text-sm text-blue-300 font-medium">
+                    <strong>Audit-Ready:</strong> Chaque transaction est hashée en SHA-256 et chaînée. Impossible à falsifier.
+                  </p>
                 </div>
-                <pre className="p-5 overflow-x-auto text-sm">
-                  <code className="text-gray-300 font-mono">{`// Créer une session de paiement
-const response = await fetch(
-  'https://api.fiafio.com/api/v1/checkout/sessions',
-  {
-    method: 'POST',
-    headers: {
-      'X-API-Key': 'sk_live_xxx'
-    },
-    body: JSON.stringify({
-      amount: 5000,
-      currency: 'XAF',
-      description: 'Achat #123'
-    })
-  }
-);
-
-const data = await response.json();
-// Redirigez vers data.session.checkout_url`}</code>
-                </pre>
               </div>
             </ScrollReveal>
 
             <ScrollReveal animation="slide-right">
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  {[
-                    { icon: Code, title: 'API RESTful', desc: 'Requêtes HTTP simples avec JSON' },
-                    { icon: Zap, title: 'Webhooks temps réel', desc: 'Notifications instantanées de paiement' },
-                    { icon: Shield, title: 'Mode Test', desc: 'Testez sans frais avant la mise en prod' },
-                  ].map(({ icon: Icon, title, desc }) => (
-                    <div key={title} className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
-                      <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <Icon className="w-5 h-5 text-primary" />
-                      </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl sm:rounded-[2rem] overflow-hidden backdrop-blur-md shadow-2xl">
+                <div className="p-5 sm:p-8 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500">Grille des frais active</span>
+                  <div className="flex space-x-1.5 font-mono text-[10px] text-primary">
+                    <Check className="w-3 h-3" /> <span>Real-time Ledger</span>
+                  </div>
+                </div>
+                <div className="divide-y divide-white/5">
+                  {fees.map((f) => (
+                    <div key={f.service} className="p-4 sm:p-6 flex items-center justify-between group hover:bg-white/[0.02] transition-colors">
                       <div>
-                        <h4 className="font-semibold text-white">{title}</h4>
-                        <p className="text-gray-500 text-sm">{desc}</p>
+                        <div className="text-base sm:text-lg font-bold text-white mb-0.5">{f.service}</div>
+                        <div className="text-[11px] sm:text-sm text-gray-500">{f.note}</div>
                       </div>
+                      <div className="text-xl sm:text-2xl font-black text-primary">{f.fee}</div>
                     </div>
                   ))}
                 </div>
-                
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button 
-                    onClick={() => navigate('/developers')}
-                    className="px-6 py-3 bg-primary text-black rounded-xl font-semibold flex items-center justify-center gap-2 hover:scale-105 transition-transform"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    Voir la documentation
-                  </button>
-                  <button 
-                    onClick={() => navigate('/register')}
-                    className="px-6 py-3 border border-white/20 text-white rounded-xl font-semibold hover:bg-white/5 transition-all"
-                  >
-                    Créer un compte
-                  </button>
+                <div className="p-4 sm:p-5 bg-primary/5 text-center italic text-xs sm:text-sm text-primary/70 border-t border-primary/10">
+                  Transactions P2P nationales gratuites à vie.
                 </div>
               </div>
             </ScrollReveal>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="relative z-10 py-20">
-        <ScrollReveal animation="fade-up">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Prêt à commencer ?
-            </h2>
-            <p className="text-gray-400 mb-8">
-              Créez votre compte en moins de 2 minutes et rejoignez la communauté Fiafio.
-            </p>
-            <button 
-              onClick={() => navigate('/register')}
-              className="px-10 py-4 bg-primary text-black rounded-2xl font-bold text-lg transition-all hover:scale-105 shadow-lg shadow-primary/30"
-            >
-              Créer mon compte gratuitement
-            </button>
+        {/* Ecosystem Section */}
+        <section id="ecosystem" className="max-w-7xl mx-auto px-4 mt-24 sm:mt-40">
+          <div className="text-center mb-12 sm:mb-16 px-4">
+            <ScrollReveal animation="fade-up">
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black mb-4">Un écosystème en expansion.</h2>
+              <p className="text-gray-400 max-w-xl mx-auto text-sm sm:text-base">
+                Fiafio s'adapte à votre réalité. Que vous soyez un particulier, un agent ou une startup technologique.
+              </p>
+            </ScrollReveal>
           </div>
-        </ScrollReveal>
-      </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-white/5 py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <img 
-                src="/fiafio_logo.png" 
-                alt="Fiafio" 
-                className="h-8 w-8 rounded-lg object-contain"
-              />
-              <span className="text-lg font-bold">Fiafio</span>
+          <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
+            {valueProps.map((p, i) => (
+              <ScrollReveal key={p.role} animation="fade-up" delay={i * 100}>
+                <div className={`group relative h-full p-6 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-gradient-to-br ${p.color} border border-white/5 hover:border-white/10 transition-all cursor-pointer overflow-hidden flex flex-col`}>
+                  <div className="absolute top-0 right-0 p-6 sm:p-8 text-white/5 group-hover:text-white/10 transition-colors hidden sm:block">
+                    <p.icon className="w-16 h-16 sm:w-24 sm:h-24 rotate-12" />
+                  </div>
+
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 border border-white/10 group-hover:scale-110 transition-transform">
+                      <p.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-[10px] sm:text-sm font-mono text-primary uppercase tracking-widest mb-2">{p.role}</div>
+                    <h3 className="text-xl sm:text-2xl font-black mb-3 sm:mb-4 group-hover:text-primary transition-colors leading-tight">{p.title}</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                      {p.desc}
+                    </p>
+                    <ul className="space-y-3 mb-8">
+                      {p.features.map(f => (
+                        <li key={f} className="flex items-center text-sm font-medium text-gray-300">
+                          <Check className="w-4 h-4 text-primary mr-2 shrink-0" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => p.path ? navigate(p.path) : navigate('/register')}
+                      className="w-full py-3.5 sm:py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-2 transition-all group-hover:bg-primary group-hover:text-black shadow-lg text-sm sm:text-base"
+                    >
+                      {p.cta}
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        </section>
+
+        {/* Developer Teaser */}
+        <section className="max-w-7xl mx-auto px-4 mt-24 sm:mt-40">
+          <div className="p-8 lg:p-12 rounded-3xl sm:rounded-[3rem] bg-[#0A0A0A] border border-white/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-[50%] h-full bg-primary/5 blur-[120px]" />
+            <div className="grid lg:grid-cols-2 gap-10 sm:gap-12 items-center relative z-10">
+              <ScrollReveal animation="slide-left">
+                <div>
+                  <div className="inline-flex items-center space-x-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-mono tracking-widest text-primary mb-6">
+                    <Code className="w-3 h-3" />
+                    <span>BUILT FOR DEVELOPERS</span>
+                  </div>
+                  <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black mb-6 leading-none">L'API de paiement<br /><span className="text-white/80">sans friction.</span></h2>
+                  <p className="text-gray-400 text-sm sm:text-lg mb-8 max-w-lg leading-relaxed">
+                    Intégrez Fiafio Checkout en quelques minutes. RESTful, webhooks signés et mode Sandbox pour tester sans limites.
+                  </p>
+                  <div className="flex flex-wrap gap-3 sm:gap-4">
+                    <button onClick={() => navigate('/developers')} className="flex-1 sm:flex-none px-6 sm:px-8 py-4 bg-primary text-black rounded-xl sm:rounded-2xl font-bold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-sm sm:text-base">
+                      Documentation <Globe className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => navigate('/merchants')} className="flex-1 sm:flex-none px-6 sm:px-8 py-4 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base">
+                      Dashboard
+                    </button>
+                  </div>
+                </div>
+              </ScrollReveal>
+
+              <ScrollReveal animation="slide-right">
+                <div className="bg-black border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                  <div className="bg-white/5 px-4 py-2 border-b border-white/10 flex items-center gap-1.5 shrink-0">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
+                    <span className="text-[10px] font-mono text-gray-500 ml-2">fiafio.sh</span>
+                  </div>
+                  <div className="p-5 sm:p-8 font-mono text-[11px] sm:text-sm leading-relaxed overflow-x-auto bg-black/40 backdrop-blur-sm">
+                    <div className="flex gap-4">
+                      <span className="text-gray-700">1</span>
+                      <span className="text-primary">curl</span>
+                      <span className="text-white">-X POST /sessions \</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <span className="text-gray-700">2</span>
+                      <span className="text-blue-400">  -H "Auth: Bearer sk_..." \</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <span className="text-gray-700">3</span>
+                      <span className="text-orange-400">  -d "amount=5000" \</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <span className="text-gray-700">4</span>
+                      <span className="text-orange-400">  -d "currency=XAF"</span>
+                    </div>
+                  </div>
+                </div>
+              </ScrollReveal>
             </div>
-            <div className="flex items-center gap-6 text-sm text-gray-400">
-              <button onClick={() => navigate('/developers')} className="hover:text-primary transition-colors">
-                Documentation API
+          </div>
+        </section>
+
+        {/* CTA Banner */}
+        <section className="max-w-7xl mx-auto px-4 mt-24 sm:mt-32 text-center pb-12 sm:pb-0">
+          <ScrollReveal animation="scale">
+            <div className="cta-banner p-10 sm:p-20 rounded-3xl sm:rounded-[3rem] border relative overflow-hidden group shadow-2xl dark:shadow-none">
+              <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.03] transition-opacity" />
+              <h2 className="text-3xl sm:text-5xl md:text-6xl font-black mb-6 sm:mb-8 relative z-10 leading-tight text-white">Prêt pour la réalité<br />du Mobile Money ?</h2>
+              <button
+                onClick={() => navigate('/register')}
+                className="w-full sm:w-auto px-8 sm:px-12 py-5 sm:py-6 bg-primary text-black rounded-xl sm:rounded-3xl font-black text-lg sm:text-xl hover:scale-105 active:scale-95 transition-all shadow-xl relative z-10"
+              >
+                Ouvrir un compte GRATUIT
               </button>
             </div>
-            <div className="text-gray-600 text-sm">
-              © {new Date().getFullYear()} Fiafio. Tous droits réservés.
+          </ScrollReveal>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 pt-20 pb-10">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-20">
+            <div className="col-span-2">
+              <div className="flex items-center space-x-3 mb-6">
+                <img src="/fiafio_logo.png" alt="" className="w-8 h-8" />
+                <span className="text-xl font-bold uppercase tracking-widest">FIAFIO</span>
+              </div>
+              <p className="text-gray-500 text-sm max-w-xs leading-relaxed">
+                Infrastructure de paiement mobile de nouvelle génération pour l'Afrique.
+                Sécurité cryptographique, transparence totale.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-white mb-6">Produit</h4>
+              <ul className="space-y-4 text-sm text-gray-400">
+                <li><a href="#" className="hover:text-primary">Fonctionnement</a></li>
+                <li><a href="#" className="hover:text-primary">Frais & Limites</a></li>
+                <li><button onClick={() => navigate('/login')} className="hover:text-primary">Connexion</button></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-white mb-6">Business</h4>
+              <ul className="space-y-4 text-sm text-gray-400">
+                <li><button onClick={() => navigate('/merchants')} className="hover:text-primary transition-colors">Marchands</button></li>
+                <li><button onClick={() => navigate('/developers')} className="hover:text-primary transition-colors">Développeurs</button></li>
+                <li><a href="#" className="hover:text-primary">Devenir Agent</a></li>
+              </ul>
+            </div>
+
+            <div className="col-span-2 lg:col-span-1">
+              <h4 className="font-bold text-white mb-6">Social</h4>
+              <div className="flex space-x-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:border-primary/50 cursor-pointer transition-colors" />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-white/5 text-gray-600 text-[10px] font-mono uppercase tracking-[0.2em]">
+            <p>© {new Date().getFullYear()} FIAFIO PROTOCOL. ALL RIGHTS RESERVED.</p>
+            <div className="flex space-x-8 mt-4 md:mt-0">
+              <a href="#" className="hover:text-white">Privacy</a>
+              <a href="#" className="hover:text-white">Terms</a>
+              <a href="#" className="hover:text-white">Audit Logs</a>
             </div>
           </div>
         </div>

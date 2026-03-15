@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, CheckCircle, User, Delete } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,6 +18,7 @@ interface Recipient {
 export default function TransferPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>('RECIPIENT');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,14 +37,14 @@ export default function TransferPage() {
       const foundUser = res.data.user;
 
       if (user && foundUser.id === user.id) {
-          setError("You cannot send money to yourself.");
+          setError("Vous ne pouvez pas vous envoyer de l'argent.");
           return;
       }
 
       setRecipient(foundUser);
       setStep('AMOUNT');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'User not found');
+      setError(err.response?.data?.error || 'Utilisateur non trouvé');
     } finally {
       setLoading(false);
     }
@@ -58,6 +60,9 @@ export default function TransferPage() {
         amount: Number(amount),
         description: description || 'P2P Transfer'
       });
+      // Invalidate cached data so Dashboard/MerchantPortal refresh
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setStep('SUCCESS');
     } catch (err: any) {
       console.log('Transfer Error:', err.response)
@@ -82,8 +87,8 @@ export default function TransferPage() {
         return (
           <div className="space-y-8 pt-10">
             <div className="text-center">
-              <h2 className="text-3xl font-bold tracking-tight text-white">Send Money</h2>
-              <p className="mt-2 text-gray-400">Find a recipient by phone or ID</p>
+              <h2 className="text-3xl font-bold tracking-tight text-white">Envoyer de l'argent</h2>
+              <p className="mt-2 text-gray-400">Trouvez un destinataire par téléphone ou ID</p>
             </div>
 
             <form onSubmit={handleSearch} className="space-y-6">
@@ -91,7 +96,7 @@ export default function TransferPage() {
                 <Search className="absolute left-4 top-4 h-6 w-6 text-gray-500 transition-colors group-focus-within:text-primary" />
                 <input
                   type="text"
-                  placeholder="Enter Phone or ID"
+                  placeholder="Téléphone ou ID"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full rounded-2xl border border-white/10 bg-surface/50 px-14 py-4 text-lg text-white placeholder-gray-600 outline-none transition-all focus:border-primary/50 focus:bg-black/40 focus:ring-1 focus:ring-primary/50"
@@ -104,7 +109,7 @@ export default function TransferPage() {
                 disabled={loading || !phone}
                 className="w-full rounded-2xl bg-white py-4 font-bold text-black shadow-lg transition-transform hover:scale-[1.02] disabled:opacity-50"
               >
-                {loading ? 'Searching...' : 'Continue'}
+                {loading ? 'Recherche...' : 'Continuer'}
               </button>
             </form>
 
@@ -126,7 +131,7 @@ export default function TransferPage() {
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 text-primary">
                   <User className="h-8 w-8" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-300">Sending to</h3>
+                <h3 className="text-lg font-medium text-gray-300">Envoi à</h3>
                 <p className="text-xl font-bold text-white">{recipient?.fullName}</p>
                  <p className="text-sm text-gray-500 font-mono">{recipient?.uniqueId || recipient?.phone}</p>
               </div>
@@ -169,7 +174,7 @@ export default function TransferPage() {
                 <div className="space-y-4">
                   <input
                     type="text"
-                    placeholder="Add a note (optional)"
+                    placeholder="Ajouter une note (optionnel)"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full bg-transparent text-center text-gray-500 placeholder-gray-700 outline-none"
@@ -179,7 +184,7 @@ export default function TransferPage() {
                     disabled={!amount || Number(amount) <= 0}
                     className="w-full rounded-2xl bg-primary py-4 font-bold text-background shadow-lg shadow-primary/20 transition-transform hover:scale-[1.02] disabled:opacity-50"
                   >
-                    Review
+                    Vérifier
                   </button>
                 </div>
             </div>
@@ -189,25 +194,25 @@ export default function TransferPage() {
       case 'CONFIRM':
         return (
           <div className="space-y-8 pt-6">
-            <h2 className="text-center text-3xl font-bold text-white">Confirm</h2>
+            <h2 className="text-center text-3xl font-bold text-white">Confirmation</h2>
 
             <div className="overflow-hidden rounded-3xl bg-surface p-1">
                 <div className="rounded-[20px] border border-white/5 bg-black/40 p-6">
                     <div className="mb-6 text-center">
-                        <p className="text-gray-400">Total Amount</p>
+                        <p className="text-gray-400">Montant Total</p>
                         <p className="text-4xl font-bold text-primary">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(Number(amount))}</p>
                     </div>
 
                     <div className="space-y-4">
                         <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                            <span className="text-gray-400">To</span>
+                            <span className="text-gray-400">À</span>
                             <div className="text-right">
                                 <p className="font-bold text-white">{recipient?.fullName}</p>
                                 <p className="text-xs text-gray-500">{recipient?.uniqueId}</p>
                             </div>
                         </div>
                         <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                             <span className="text-gray-400">Fee</span>
+                             <span className="text-gray-400">Frais</span>
                              <span className="font-bold text-white">0 XAF</span>
                         </div>
                          {description && (
@@ -225,7 +230,7 @@ export default function TransferPage() {
               disabled={loading}
               className="w-full rounded-2xl bg-primary py-4 font-bold text-black shadow-[0_0_30px_rgba(212,255,0,0.2)] transition-transform hover:scale-[1.02] active:scale-[0.95]"
             >
-              {loading ? 'Sending...' : 'Send Now'}
+              {loading ? 'Envoi en cours...' : 'Envoyer maintenant'}
             </button>
           </div>
         );
@@ -241,16 +246,16 @@ export default function TransferPage() {
             </div>
             
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold text-white">Sent!</h2>
+              <h2 className="text-3xl font-bold text-white">Envoyé !</h2>
               <p className="text-xl text-primary">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(Number(amount))}</p>
-              <p className="text-gray-400">to {recipient?.fullName}</p>
+              <p className="text-gray-400">à {recipient?.fullName}</p>
             </div>
 
             <button
               onClick={() => navigate('/dashboard')}
               className="w-full max-w-xs rounded-2xl bg-surface py-4 font-semibold text-white hover:bg-surface/80"
             >
-              Done
+              Terminé
             </button>
           </div>
         );
@@ -265,7 +270,7 @@ export default function TransferPage() {
             className="flex items-center gap-2 rounded-full bg-surface/50 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-surface hover:text-white"
         >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Retour
         </button>
       </div>
 

@@ -7,11 +7,12 @@ import { fr } from 'date-fns/locale';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   ArrowDownLeft, Banknote, Wallet, History, RefreshCcw, LogOut,
-  TrendingUp, Award, ChevronRight, AlertCircle, QrCode,
+  TrendingUp, Award, ChevronRight, QrCode,
   Search, CheckCircle, Delete, ArrowLeft, User, AlertTriangle,
   Bell, XCircle, Clock, Eye, DollarSign
 } from 'lucide-react';
 import TransactionModal from '../components/TransactionModal';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface Transaction {
   reference: string;
@@ -581,6 +582,7 @@ export default function AgentDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
+          <ThemeToggle />
           <button 
             type="button"
             onClick={fetchData} 
@@ -599,32 +601,67 @@ export default function AgentDashboard() {
         </div>
       </div>
 
-      {/* Activation Banner for PENDING_FLOAT agents */}
+      {/* Activation Steps Card for PENDING_FLOAT agents */}
       {stats?.activation?.status === 'PENDING_FLOAT' && (
-        <div className="mb-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-6 w-6 text-yellow-500" />
-              <div>
-                <p className="font-medium text-yellow-400">Compte en attente d'activation</p>
-                <p className="text-sm text-gray-400">
-                  Effectuez votre premier dépôt float (min 100 000 XAF) avant le délai.
-                  {stats.activation.daysRemaining !== null && (
-                    <span className="ml-1 font-bold text-yellow-500">
-                      {stats.activation.daysRemaining} jour(s) restant(s)
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setView('ACTIVATE')}
-              className="rounded-xl bg-yellow-500 px-4 py-2 font-bold text-black hover:bg-yellow-400"
-            >
-              Activer
-            </button>
+        <div className="mb-6 rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Award className="h-6 w-6 text-yellow-500" />
+            <h3 className="text-lg font-bold text-yellow-400">Activez votre compte agent</h3>
           </div>
+          
+          <p className="text-gray-400 text-sm mb-4">
+            Pour garantir la sécurité de tous, deux étapes simples sont nécessaires pour commencer vos opérations :
+          </p>
+
+          <div className="space-y-3 mb-4">
+            {/* Step 1: KYC */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 text-sm font-bold text-blue-400">
+                1
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-white text-sm">Vérification KYC niveau 2</p>
+                <p className="text-xs text-gray-500">CNI + Selfie pour valider votre identité</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/kyc')}
+                className="rounded-lg bg-blue-500/20 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/30"
+              >
+                Vérifier
+              </button>
+            </div>
+
+            {/* Step 2: First Float Deposit */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500/20 text-sm font-bold text-yellow-400">
+                2
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-white text-sm">Premier dépôt float de 100 000 FCFA</p>
+                <p className="text-xs text-gray-500">Capital de démarrage pour vos opérations</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setView('ACTIVATE')}
+                className="rounded-lg bg-yellow-500/20 px-3 py-1.5 text-xs font-medium text-yellow-400 hover:bg-yellow-500/30"
+              >
+                Déposer
+              </button>
+            </div>
+          </div>
+
+          {stats.activation.daysRemaining !== null && (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-red-400" />
+                <span className="text-sm text-red-400">
+                  <span className="font-bold">{stats.activation.daysRemaining}</span> jour(s) restant(s)
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">avant suspension</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -636,15 +673,15 @@ export default function AgentDashboard() {
             <div>
               <p className="font-medium text-red-400">Compte suspendu</p>
               <p className="text-sm text-gray-400">
-                Le délai d'activation a expiré. Contactez le support Fiafio.
+                Le délai d'activation a expiré. Contactez le support Fiafio pour réactiver votre compte.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Float Balance Card */}
-      <div className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-6 text-black">
+      {/* Float Balance Card with restrictions */}
+      <div className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-6 text-black relative">
         <div className="flex items-center gap-2 opacity-80">
           <Wallet className="h-5 w-5" />
           <span className="font-medium">Float Disponible</span>
@@ -652,10 +689,11 @@ export default function AgentDashboard() {
         <div className="mt-3 text-4xl font-bold tracking-tighter">
           {loading ? '...' : formatCurrency(floatBalance)}
         </div>
-        <div className="mt-4 flex gap-2">
+        <div className={`mt-4 flex gap-2 ${stats?.activation?.status !== 'ACTIVE' ? 'opacity-50 pointer-events-none' : ''}`}>
           <button
             type="button"
-            onClick={() => navigate('/float-request')}
+            onClick={() => stats?.activation?.status === 'ACTIVE' && navigate('/float-request')}
+            disabled={stats?.activation?.status !== 'ACTIVE'}
             className="flex-1 rounded-xl bg-black/20 py-3 text-sm font-semibold backdrop-blur-sm hover:bg-black/30"
           >
             💰 Demander Float
@@ -668,44 +706,77 @@ export default function AgentDashboard() {
             <History className="h-5 w-5" />
           </button>
         </div>
+
+        {/* Overlay for non-active agents */}
+        {stats?.activation?.status !== 'ACTIVE' && stats?.activation?.status && (
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center rounded-b-3xl bg-black/80 backdrop-blur-sm py-3">
+            <p className="text-white/80 text-sm">🔒 Activez votre compte pour accéder à toutes les fonctionnalités</p>
+          </div>
+        )}
       </div>
 
-      {/* Quick Actions */}
-      <div className="mb-6 grid grid-cols-3 gap-3">
-        <button
-          type="button"
-          onClick={() => { setView('DEPOSIT'); resetFlow(); }}
-          className="flex flex-col items-center gap-2 rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-center transition hover:bg-green-500/20"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20 text-green-500">
-            <ArrowDownLeft className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="font-bold text-white">Dépôt</h3>
-            <p className="text-xs text-gray-400">Cash-In</p>
-          </div>
-        </button>
+      {/* Quick Actions with activation restrictions */}
+      <div className="mb-6 relative">
+        <div className={`grid grid-cols-2 gap-3 ${stats?.activation?.status !== 'ACTIVE' ? 'opacity-50 pointer-events-none' : ''}`}>
+          <button
+            type="button"
+            onClick={() => { setView('DEPOSIT'); resetFlow(); }}
+            disabled={stats?.activation?.status !== 'ACTIVE'}
+            className="flex flex-col items-center gap-2 rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-center transition hover:bg-green-500/20"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20 text-green-500">
+              <ArrowDownLeft className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-white">Dépôt</h3>
+              <p className="text-xs text-gray-400">Cash-In</p>
+            </div>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setView('MY_QR')}
-          className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-surface/30 p-4 text-center transition hover:bg-surface/50"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white">
-            <QrCode className="h-6 w-6" />
+          <button
+            type="button"
+            onClick={() => setView('MY_QR')}
+            disabled={stats?.activation?.status !== 'ACTIVE'}
+            className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-surface/30 p-4 text-center transition hover:bg-surface/50"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white">
+              <QrCode className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-white">QR Code</h3>
+              <p className="text-xs text-gray-400">Retrait rapide</p>
+            </div>
+          </button>
+        </div>
+
+        {/* Overlay for non-active agents */}
+        {stats?.activation?.status !== 'ACTIVE' && stats?.activation?.status && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/80 backdrop-blur-sm">
+            <div className="text-center px-4">
+              {stats.activation.status === 'PENDING_FLOAT' ? (
+                <>
+                  <p className="text-white font-medium text-sm">🔒 Opérations verrouillées</p>
+                  <p className="text-gray-400 text-xs mt-1">Complétez les étapes ci-dessus</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-red-400 font-medium text-sm">⛔ Compte suspendu</p>
+                  <p className="text-gray-400 text-xs mt-1">Contactez le support</p>
+                </>
+              )}
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-white">QR Code</h3>
-            <p className="text-xs text-gray-400">Retrait rapide</p>
-          </div>
-        </button>
+        )}
       </div>
 
-      {/* Requests Management Section - Always visible */}
-      <div className="mb-6 space-y-3">
+      {/* Requests Management Section - Only fully accessible when active */}
+      <div className={`mb-6 space-y-3 ${stats?.activation?.status !== 'ACTIVE' ? 'opacity-40 pointer-events-none' : ''}`}>
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-primary" />
           <h2 className="font-semibold text-white">Gestion des Demandes</h2>
+          {stats?.activation?.status !== 'ACTIVE' && (
+            <span className="text-xs text-gray-500 ml-auto">🔒 Activez d'abord votre compte</span>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
