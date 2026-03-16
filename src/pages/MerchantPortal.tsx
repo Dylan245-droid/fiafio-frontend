@@ -12,6 +12,7 @@ import { useAccounts } from '../hooks/useAccounts';
 import { useTransactions } from '../hooks/useTransactions';
 import TransactionModal from '../components/TransactionModal';
 import ThemeToggle from '../components/ThemeToggle';
+import { ShieldCheck, Clock as ClockIcon, ShieldAlert } from 'lucide-react';
 
 type Tab = 'DASHBOARD' | 'API_KEYS' | 'TRANSACTIONS' | 'WEBHOOKS' | 'SETTINGS';
 
@@ -46,7 +47,7 @@ interface Transaction {
 
 
 export default function MerchantPortal() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   
   // React Query hooks for auto-refresh
@@ -206,48 +207,64 @@ export default function MerchantPortal() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-white">
-      {/* Header */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white truncate max-w-[250px] sm:max-w-none">
-            {merchant?.businessName || 'Portail Marchand'}
-          </h1>
-          <p className="text-gray-500 text-xs sm:text-sm">ID: <span className="font-mono text-primary">{user?.uniqueId}</span></p>
+      <div className="mx-auto max-w-6xl">
+        {/* Header Premium 2026 - Simplified */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between p-6 rounded-[2.5rem] bg-surface/20 border border-white/5 backdrop-blur-md gap-6">
+          <div className="flex items-center gap-5">
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full" />
+              <div className="relative h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-[1px]">
+                <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#111]">
+                  <div className="h-10 w-10 rounded-lg bg-purple-500 flex items-center justify-center">
+                    <LayoutDashboard className="w-6 h-6 text-black" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-400 mb-1">Business Identity</p>
+              <h1 className="text-2xl font-black uppercase tracking-tighter text-white leading-tight">
+                {merchant?.businessName || 'Merchant Portal'}
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 self-end md:self-auto">
+            <ThemeToggle />
+            <div className="h-10 w-[1px] bg-white/10 mx-2 hidden md:block" />
+            <button
+              onClick={() => { fetchMerchantData(); handleRefresh(); }}
+              className="rounded-xl bg-white/5 p-3 text-gray-400 hover:bg-purple-500/20 hover:text-purple-400 transition-all border border-white/5"
+            >
+              <RefreshCcw className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => { logout(); navigate('/login'); }}
+              className="rounded-xl bg-white/5 p-3 text-red-400 hover:bg-red-500/20 transition-all border border-red-500/10"
+              title="Déconnexion"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 self-end sm:self-auto">
-          <ThemeToggle />
-          <button
-            onClick={() => { fetchMerchantData(); handleRefresh(); }}
-            className="p-2 sm:p-2.5 bg-surface border border-white/10 rounded-xl text-gray-400 hover:text-primary hover:border-primary/30 transition-all"
-          >
-            <RefreshCcw className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => { logout(); navigate('/login'); }}
-            className="p-2 sm:p-2.5 bg-surface border border-white/10 rounded-xl text-gray-400 hover:bg-red-500/20 hover:text-red-500 hover:border-red-500/30 transition-all"
-            title="Déconnexion"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
 
-      {/* Navigation Tabs */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-              activeTab === tab.key
-                ? 'bg-primary text-black'
-                : 'bg-surface text-gray-400 hover:text-white border border-white/5'
-            }`}
-          >
-            <tab.icon className="w-4 h-4 shrink-0" />
-            {tab.label}
-          </button>
-        ))}
+      {/* Swipable Navigation Tabs */}
+      <div className="mb-8 -mx-4 px-4 pt-4 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="flex min-w-max gap-3 pb-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                activeTab === tab.key
+                  ? 'bg-purple-500 text-black shadow-lg shadow-purple-500/20'
+                  : 'bg-surface/20 text-gray-400 hover:text-white border border-white/5 backdrop-blur-md'
+              }`}
+            >
+              <tab.icon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Dashboard Tab */}
@@ -256,7 +273,7 @@ export default function MerchantPortal() {
           {/* KYC Verification Link */}
           <button
             onClick={() => navigate('/kyc')}
-            className="w-full rounded-2xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-4 text-left transition hover:border-blue-500/40"
+            className="w-full mb-6 rounded-2xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-4 text-left transition hover:border-blue-500/40"
           >
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20">
@@ -270,15 +287,16 @@ export default function MerchantPortal() {
             </div>
           </button>
 
-          {/* Main Balance Card */}
-          <div className="relative overflow-hidden rounded-3xl bg-primary p-6 text-black shadow-lg shadow-primary/20">
-            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
+          {/* Main Balance Card - Premium Design */}
+          <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-purple-500 to-purple-600 p-8 text-black shadow-2xl shadow-purple-500/10 mb-8">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 blur-[60px] rounded-full" />
             <div className="relative z-10">
-              <div className="flex items-center gap-2 opacity-80">
-                <Wallet className="h-5 w-5" />
-                <span className="font-medium">Solde Total</span>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1 px-2 rounded-lg bg-black/10 text-[10px] font-black uppercase tracking-widest">
+                  Total Accumulated Balance
+                </div>
               </div>
-              <div className="mt-4 text-3xl sm:text-4xl font-bold tracking-tighter truncate">
+              <div className="mt-4 text-5xl font-black tracking-tighter truncate">
                 {formatCurrency(
                   (accounts.find(a => a.type === 'WALLET')?.balance || 0) +
                   (accounts.find(a => a.type === 'MERCHANT')?.balance || 0)
@@ -286,83 +304,70 @@ export default function MerchantPortal() {
               </div>
               
               {/* Account breakdown */}
-              <div className="mt-4 space-y-2 rounded-xl bg-black/10 p-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-black/40"></span>
-                    Mon Portefeuille
-                  </span>
-                  <span className="font-semibold">
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-black/10 p-4 border border-white/10 backdrop-blur-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Personal Wallet</p>
+                  <p className="text-xl font-bold">
                     {new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'WALLET')?.balance || 0)} FCFA
-                  </span>
+                  </p>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-600"></span>
-                    Mes Recettes Business
-                  </span>
-                  <span className="font-semibold">
+                <div className="rounded-2xl bg-black/20 p-4 border border-white/10 backdrop-blur-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Business Revenue</p>
+                  <p className="text-xl font-bold">
                     {new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'MERCHANT')?.balance || 0)} FCFA
-                  </span>
+                  </p>
                 </div>
               </div>
 
-              {/* Action buttons with KYC restrictions */}
-              <div className="mt-6 relative">
-                <div className={`grid grid-cols-3 gap-2 ${merchant?.kycStatus !== 'VERIFIED' ? 'opacity-50 pointer-events-none' : ''}`}>
+              {/* Action buttons */}
+              <div className="mt-8 relative">
+                <div className={`grid grid-cols-3 gap-3 ${merchant?.kycStatus !== 'VERIFIED' ? 'opacity-50 pointer-events-none' : ''}`}>
                   <button 
                     onClick={() => merchant?.kycStatus === 'VERIFIED' && navigate('/transfer')}
-                    disabled={merchant?.kycStatus !== 'VERIFIED'}
-                    className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3 font-semibold backdrop-blur-sm transition hover:bg-black/20"
+                    className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-black text-white py-4 transition hover:bg-black/80"
                   >
                     <ArrowUpRight className="h-5 w-5" />
-                    <span className="text-xs">Envoyer</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Envoyer</span>
                   </button>
                   <button 
                     onClick={() => navigate('/deposit')}
-                    className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3 font-semibold backdrop-blur-sm transition hover:bg-black/20"
+                    className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/10 py-4 font-semibold transition hover:bg-white/20"
                   >
                     <ArrowDownLeft className="h-5 w-5" />
-                    <span className="text-xs">Recharger</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Recharger</span>
                   </button>
                   <button 
                     onClick={() => merchant?.kycStatus === 'VERIFIED' && navigate('/withdraw')}
-                    disabled={merchant?.kycStatus !== 'VERIFIED'}
-                    className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/80 py-3 font-semibold text-white transition hover:bg-black"
+                    className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-black py-4 font-semibold text-white transition hover:bg-black/80"
                   >
                     <Wallet className="h-5 w-5" />
-                    <span className="text-xs">Retrait</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Retrait</span>
                   </button>
                 </div>
 
-                {/* Overlay for non-verified merchants */}
+                {/* Overlay for non-verified merchants - Premium Redesign 2026 */}
                 {merchant && merchant.kycStatus !== 'VERIFIED' && (
-                  <div className="absolute inset-x-0 bottom-0 rounded-b-xl bg-gradient-to-t from-black/90 to-black/70 backdrop-blur-sm p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="text-lg">
-                          {merchant.kycStatus === 'PENDING' && '🔒'}
-                          {merchant.kycStatus === 'SUBMITTED' && '⏳'}
-                          {merchant.kycStatus === 'REJECTED' && '❌'}
-                        </span>
-                        <div>
-                          <p className="text-white text-sm font-medium">
-                            {merchant.kycStatus === 'PENDING' && 'Vérification requise'}
-                            {merchant.kycStatus === 'SUBMITTED' && 'En cours de revue'}
-                            {merchant.kycStatus === 'REJECTED' && 'Vérification refusée'}
-                          </p>
-                          <p className="text-gray-400 text-xs">
-                            {merchant.kycStatus === 'REJECTED' 
-                              ? 'Contactez le support' 
-                              : 'Débloquez les transactions'}
-                          </p>
-                        </div>
-                      </div>
-                      <button
+                  <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 backdrop-blur-xl p-6 border border-white/5 shadow-2xl overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-50" />
+                    <div className="relative text-center">
+                       <div className="mb-4 flex justify-center">
+                         <div className="relative">
+                           <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full" />
+                           <div className="relative h-12 w-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                             <ShieldAlert className="w-6 h-6 text-purple-400" />
+                           </div>
+                         </div>
+                       </div>
+                       <p className="text-white text-xs font-black uppercase tracking-[0.3em] mb-1">KYC Required</p>
+                       <p className="text-gray-400 text-[9px] font-mono mb-5 uppercase tracking-wider opacity-80">Identity verification pending</p>
+                       <button
                         onClick={() => navigate('/kyc')}
-                        className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-bold text-black hover:bg-primary/90"
+                        className="group/btn relative overflow-hidden rounded-full bg-white text-black px-8 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/10"
                       >
-                        Vérifier
+                        <span className="relative z-10 flex items-center gap-2">
+                          Verify Now
+                          <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -412,58 +417,71 @@ export default function MerchantPortal() {
             </div>
           </div>
 
-          {/* Recent Activity Section */}
-          <div className="bg-surface border border-white/5 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white">Activité Récente</h3>
-              <button 
-                onClick={() => setActiveTab('TRANSACTIONS')} 
-                className="text-sm text-primary hover:underline"
-              >
-                Voir Tout
-              </button>
+          {/* Recent Activity Section - Timeline Design */}
+          <div className="rounded-[2.5rem] border border-white/5 bg-surface/20 p-8 backdrop-blur-md">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-1">
+                  Flux Business Recents
+                </h3>
+                <p className="text-[10px] font-mono text-purple-500/60 uppercase">Dernières transactions</p>
+              </div>
+              <div className="flex -space-x-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="w-6 h-6 rounded-full border-2 border-[#111] bg-purple-500/20 flex items-center justify-center">
+                    <ShieldCheck className="w-3 h-3 text-purple-500" />
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-6">
               {recentAccountTransactions.length > 0 ? (
                 recentAccountTransactions.map((tx) => (
-                  <div 
-                    key={tx.reference}
-                    onClick={() => setSelectedTxRef(tx.reference)}
-                    className="flex items-center justify-between rounded-xl bg-background p-3 transition hover:bg-accent cursor-pointer hover:scale-[1.01]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                        tx.direction === 'IN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                      }`}>
-                        {tx.direction === 'IN' ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-white text-sm">{tx.type}</h4>
-                        <p className="text-xs text-gray-500">{format(new Date(tx.createdAt), 'dd MMM, HH:mm')}</p>
-                      </div>
+                  <div key={tx.reference} className="relative pl-8 group cursor-pointer" onClick={() => setSelectedTxRef(tx.reference)}>
+                    {/* Timeline Line */}
+                    <div className="absolute left-[11px] top-8 bottom-[-24px] w-[2px] bg-white/5 group-last:hidden" />
+                    
+                    {/* Dot */}
+                    <div className="absolute left-0 top-1.5 w-[24px] h-[24px] rounded-full bg-surface/50 border border-white/10 flex items-center justify-center z-10 group-hover:border-purple-500/50 transition-colors">
+                      <div className={`w-1.5 h-1.5 rounded-full ${tx.direction === 'IN' ? 'bg-green-500' : 'bg-purple-500'} animate-pulse`} />
                     </div>
-                    <div className="text-right">
-                      <span className={`block font-semibold text-sm ${
-                        tx.direction === 'IN' ? 'text-green-500' : 'text-white'
-                      }`}>
-                        {tx.direction === 'IN' ? '+' : '-'}{formatCurrency(tx.amount)}
-                      </span>
-                      <span className={`text-xs ${
-                        tx.status === 'COMPLETED' ? 'text-green-500' : 'text-yellow-500'
-                      }`}>
-                        {tx.status === 'COMPLETED' ? 'Complété' : tx.status}
-                      </span>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-white mb-1 group-hover:text-purple-400 transition-colors truncate max-w-[150px] sm:max-w-none">
+                          {tx.type}
+                        </p>
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                          <ClockIcon className="w-3 h-3" />
+                          {format(new Date(tx.createdAt), 'dd MMM, HH:mm')}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className={`text-sm font-black ${tx.direction === 'IN' ? 'text-green-500' : 'text-white'}`}>
+                          {tx.direction === 'IN' ? '+' : '-'}{formatCurrency(tx.amount)}
+                        </div>
+                        <div className={`text-[10px] font-black uppercase tracking-widest ${tx.status === 'COMPLETED' ? 'text-purple-500/40' : 'text-yellow-500/40'}`}>
+                          {tx.status}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="py-8 text-center text-gray-600">
-                  <History className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                  Aucune transaction récente
+                <div className="py-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+                  <History className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Aucune transaction</p>
                 </div>
               )}
             </div>
+
+            <button 
+              onClick={() => setActiveTab('TRANSACTIONS')}
+              className="w-full mt-10 py-4 rounded-2xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/10 transition-all"
+            >
+              Historique Complet
+            </button>
           </div>
         </div>
       )}
@@ -791,6 +809,7 @@ export default function MerchantPortal() {
           onCancellationRequested={handleRefresh}
         />
       )}
+      </div>
     </div>
   );
 }

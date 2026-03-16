@@ -10,10 +10,12 @@ import {
 import ScrollReveal from '../components/ScrollReveal';
 import FloatingShapes from '../components/FloatingShapes';
 import ThemeToggle from '../components/ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const { theme } = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -91,6 +93,16 @@ export default function LandingPage() {
       path: "/merchants",
       icon: Database,
       color: "from-primary/20 to-primary/5"
+    }
+  ];
+
+  const partners = [
+    {
+      name: "GoTchop",
+      logoDark: "/partners/gotchop_dark.png", // logo_dark (Texte blanc) pour Dark mode
+      logoLight: "/partners/gotchop_light.png", // logo_light (Texte dark) pour Light mode
+      url: "https://food.jool-sup.com",
+      type: "image"
     }
   ];
 
@@ -176,7 +188,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <main className="relative pt-24 sm:pt-32 lg:pt-40 pb-16">
+      <main className="relative pt-16 sm:pt-24 lg:pt-32 pb-12">
         <section className="max-w-7xl mx-auto px-4 text-center">
           <ScrollReveal animation="fade-in" delay={0}>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-xs font-mono text-primary mb-6 sm:mb-8 tracking-widest uppercase">
@@ -224,21 +236,60 @@ export default function LandingPage() {
             </div>
           </ScrollReveal>
 
-          {/* Stats Grid */}
-          <div className="mt-16 sm:mt-24 grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 lg:gap-8">
+          {/* Stats Grid - Narrower for better focus */}
+          <div className="mt-12 sm:mt-16 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             {stats.map((s, i) => (
               <ScrollReveal key={s.label} animation="fade-up" delay={400 + (i * 100)}>
-                <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white/5 border border-white/5 backdrop-blur-sm group hover:border-primary/20 transition-all">
+                <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white/5 border border-white/5 backdrop-blur-sm group hover:border-primary/20 transition-all text-center">
                   <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-1">{s.value}</div>
                   <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{s.label}</div>
                 </div>
               </ScrollReveal>
             ))}
           </div>
+
+          {/* Trust / Partners Section - Static and Clear */}
+          <div className="mt-12 flex flex-col items-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 mb-10 items-center flex gap-4">
+              <span className="h-px w-8 bg-white/10" />
+              Ils nous font confiance
+              <span className="h-px w-8 bg-white/10" />
+            </p>
+            <div className="flex flex-wrap justify-center items-center gap-10 sm:gap-20">
+              {partners.map((partner: any, index) => (
+                <div key={index}>
+                  {partner.type === 'image' ? (
+                    <a 
+                      href={partner.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="block"
+                    >
+                      <img 
+                        src={theme === 'dark' ? partner.logoDark : partner.logoLight} 
+                        alt={partner.name} 
+                        className="h-16 sm:h-20 w-auto object-contain" 
+                      />
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+                        {partner.icon && <partner.icon className="w-5 h-5 text-gray-500" />}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{partner.name}</p>
+                        {partner.subtitle && <p className="text-[8px] font-mono text-gray-600 uppercase">{partner.subtitle}</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* Transparency Section */}
-        <section id="transparency" className="max-w-7xl mx-auto px-4 mt-24 sm:mt-32">
+        <section id="transparency" className="max-w-7xl mx-auto px-4 mt-16 sm:mt-24">
           <div className="grid lg:grid-cols-2 gap-8 sm:gap-16 items-center">
             <ScrollReveal animation="slide-left">
               <div>
@@ -287,7 +338,7 @@ export default function LandingPage() {
         </section>
 
         {/* Ecosystem Section */}
-        <section id="ecosystem" className="max-w-7xl mx-auto px-4 mt-24 sm:mt-40">
+        <section id="ecosystem" className="max-w-7xl mx-auto px-4 mt-16 sm:mt-24">
           <div className="text-center mb-12 sm:mb-16 px-4">
             <ScrollReveal animation="fade-up">
               <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black mb-4">Un écosystème en expansion.</h2>
@@ -337,7 +388,7 @@ export default function LandingPage() {
         </section>
 
         {/* Developer Teaser */}
-        <section className="max-w-7xl mx-auto px-4 mt-24 sm:mt-40">
+        <section className="max-w-7xl mx-auto px-4 mt-16 sm:mt-24">
           <div className="p-8 lg:p-12 rounded-3xl sm:rounded-[3rem] bg-[#0A0A0A] border border-white/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-[50%] h-full bg-primary/5 blur-[120px]" />
             <div className="grid lg:grid-cols-2 gap-10 sm:gap-12 items-center relative z-10">
@@ -396,7 +447,7 @@ export default function LandingPage() {
         </section>
 
         {/* CTA Banner */}
-        <section className="max-w-7xl mx-auto px-4 mt-24 sm:mt-32 text-center pb-12 sm:pb-0">
+        <section className="max-w-7xl mx-auto px-4 mt-16 sm:mt-24 text-center pb-8 sm:pb-0">
           <ScrollReveal animation="scale">
             <div className="cta-banner p-10 sm:p-20 rounded-3xl sm:rounded-[3rem] border relative overflow-hidden group shadow-2xl dark:shadow-none">
               <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.03] transition-opacity" />
@@ -413,7 +464,7 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 pt-20 pb-10">
+      <footer className="border-t border-white/5 pt-12 pb-8">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-20">
             <div className="col-span-2">

@@ -85,7 +85,7 @@ export default function OTPInput({
             onPaste={handlePaste}
             disabled={disabled}
             className={`
-              h-14 w-12 rounded-xl border-2 bg-surface text-center text-2xl font-bold text-white
+              h-12 w-10 sm:h-14 sm:w-12 rounded-xl border-2 bg-surface text-center text-xl sm:text-2xl font-bold text-white
               transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30
               ${error ? 'border-red-500 shake' : 'border-white/10'}
               ${disabled ? 'opacity-50 cursor-not-allowed' : ''}

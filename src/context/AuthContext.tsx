@@ -7,6 +7,7 @@ interface User {
   fullName: string | null;
   role: 'CLIENT' | 'AGENT' | 'ADMIN';
   kycStatus: string;
+  kycLevel: number;
   uniqueId: string;
   hasMerchant?: boolean;
 }

@@ -450,7 +450,7 @@ export default function WithdrawPage() {
         <button 
           onClick={() => {
             if (step === 'AGENT' || step === 'SUCCESS') {
-              navigate('/dashboard');
+              navigate(-1);
             } else if (step === 'AMOUNT') {
               setStep('AGENT');
               setSelectedAgent(null);

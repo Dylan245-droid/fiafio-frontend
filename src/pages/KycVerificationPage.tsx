@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, CheckCircle, XCircle, Clock, Camera, CreditCard, FileText, Shield, Save, User, LogOut } from 'lucide-react';
+import { ArrowLeft, Upload, CheckCircle, XCircle, Clock, Camera, CreditCard, FileText, Shield, Save, LogOut } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 
 
-type DocumentType = 'CNI_FRONT' | 'CNI_BACK' | 'SELFIE' | 'PROOF_OF_ADDRESS' | 'PASSPORT';
+type DocumentType = 'CNI_FRONT' | 'CNI_BACK' | 'SELFIE' | 'PROOF_OF_ADDRESS' | 'PASSPORT' | 'NIP';
 
 interface KycDocument {
   id: number;
@@ -38,6 +38,7 @@ const DOCUMENT_CONFIG = {
   CNI_FRONT: { label: 'CNI - Recto', icon: CreditCard, description: 'Photo claire de l\'avant de votre carte d\'identité' },
   CNI_BACK: { label: 'CNI - Verso', icon: CreditCard, description: 'Photo claire de l\'arrière de votre carte d\'identité' },
   PASSPORT: { label: 'Passeport', icon: CreditCard, description: 'Page d\'identification du passeport' },
+  NIP: { label: 'NIP', icon: CreditCard, description: 'Photo du Numéro d\'Identifiant Personnel (Recto)' },
   SELFIE: { label: 'Selfie avec Pièce', icon: Camera, description: 'Photo de vous tenant votre pièce d\'identité' },
   PROOF_OF_ADDRESS: { label: 'Justificatif de domicile', icon: FileText, description: 'Facture récente (eau, électricité) ou attestation' },
 };
@@ -71,12 +72,14 @@ export default function KycVerificationPage() {
   const [success, setSuccess] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedDocType, setSelectedDocType] = useState<DocumentType | null>(null);
-  const [idType, setIdType] = useState<'CNI' | 'PASSPORT'>('CNI');
+  const [idType, setIdType] = useState<'CNI' | 'PASSPORT' | 'NIP'>('CNI');
 
   // Detect preferred ID type from existing documents
   useEffect(() => {
     if (kycStatus?.documents.find(d => d.type === 'PASSPORT')) {
       setIdType('PASSPORT');
+    } else if (kycStatus?.documents.find(d => d.type === 'NIP')) {
+      setIdType('NIP');
     } else if (kycStatus?.documents.find(d => d.type === 'CNI_FRONT')) {
       setIdType('CNI');
     }
@@ -88,6 +91,8 @@ export default function KycVerificationPage() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [address, setAddress] = useState('');
   const [cniNumber, setCniNumber] = useState('');
+  const [passportNumber, setPassportNumber] = useState('');
+  const [nipNumber, setNipNumber] = useState('');
   const [email, setEmail] = useState('');
 
   useEffect(() => {
@@ -105,6 +110,8 @@ export default function KycVerificationPage() {
         setDateOfBirth(res.data.personalInfo.dateOfBirth?.split('T')[0] || '');
         setAddress(res.data.personalInfo.address || '');
         setCniNumber(res.data.personalInfo.cniNumber || '');
+        setPassportNumber(res.data.personalInfo.passportNumber || '');
+        setNipNumber(res.data.personalInfo.nipNumber || '');
         setEmail(res.data.personalInfo.email || '');
       }
     } catch {
@@ -125,7 +132,9 @@ export default function KycVerificationPage() {
         lastName,
         dateOfBirth,
         address,
-        cniNumber,
+        cniNumber: idType === 'CNI' ? cniNumber : undefined,
+        passportNumber: idType === 'PASSPORT' ? passportNumber : undefined,
+        nipNumber: idType === 'NIP' ? nipNumber : undefined,
         email,
       });
       setSuccess('Informations enregistrées !');
@@ -207,7 +216,7 @@ export default function KycVerificationPage() {
     <div className="flex min-h-screen flex-col bg-background font-sans text-white">
       {/* Header */}
       <div className="p-4 flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-400 hover:text-white">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-400 hover:text-white">
           <ArrowLeft className="h-5 w-5" />
           <span>Retour</span>
         </button>
@@ -255,6 +264,59 @@ export default function KycVerificationPage() {
             </div>
           )}
         </div>
+        
+        {/* Step 1: ID Type Selection */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-black text-xs font-bold">1</div>
+              <h2 className="text-lg font-semibold text-white">Quelle est votre pièce d'identité ?</h2>
+            </div>
+            {kycStatus && (kycStatus.kycLevel > 0 || kycStatus.documents.some(d => ['CNI_FRONT', 'PASSPORT', 'NIP'].includes(d.type))) && (
+              <div className="flex items-center gap-1 text-[10px] text-gray-400 bg-white/5 px-2 py-1 rounded-lg">
+                <Shield className="h-3 w-3" />
+                <span>Choix verrouillé</span>
+              </div>
+            )}
+          </div>
+          
+          <div className={`flex p-1 bg-surface/50 rounded-xl border border-white/10 ${
+            kycStatus && (kycStatus.kycLevel > 0 || kycStatus.documents.some(d => ['CNI_FRONT', 'PASSPORT', 'NIP'].includes(d.type))) ? 'opacity-80 pointer-events-none' : ''
+          }`}>
+            <button
+              onClick={() => setIdType('CNI')}
+              disabled={!!(kycStatus && (kycStatus.kycLevel > 0 || kycStatus.documents.some(d => ['CNI_FRONT', 'PASSPORT', 'NIP'].includes(d.type))))}
+              className={`flex-1 py-3 text-sm font-medium rounded-lg transition ${
+                idType === 'CNI' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Carte d'identité (CNI)
+            </button>
+            <button
+              onClick={() => setIdType('NIP')}
+              disabled={!!(kycStatus && (kycStatus.kycLevel > 0 || kycStatus.documents.some(d => ['CNI_FRONT', 'PASSPORT', 'NIP'].includes(d.type))))}
+              className={`flex-1 py-3 text-sm font-medium rounded-lg transition ${
+                idType === 'NIP' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              NIP (Nouveau)
+            </button>
+            <button
+              onClick={() => setIdType('PASSPORT')}
+              disabled={!!(kycStatus && (kycStatus.kycLevel > 0 || kycStatus.documents.some(d => ['CNI_FRONT', 'PASSPORT', 'NIP'].includes(d.type))))}
+              className={`flex-1 py-3 text-sm font-medium rounded-lg transition ${
+                idType === 'PASSPORT' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Passeport
+            </button>
+          </div>
+          {kycStatus && (kycStatus.kycLevel > 0 || kycStatus.documents.some(d => ['CNI_FRONT', 'PASSPORT', 'NIP'].includes(d.type))) && (
+            <p className="text-[10px] text-gray-500 italic">
+              Le type de pièce est figé pour garantir la cohérence avec votre vérification de niveau 1.
+            </p>
+          )}
+        </div>
 
         {/* Messages */}
         {error && (
@@ -268,10 +330,10 @@ export default function KycVerificationPage() {
           </div>
         )}
 
-        {/* Personal Information Form */}
+        {/* Step 2: Personal Information */}
         <div className="rounded-2xl bg-surface/50 border border-white/10 p-4">
           <div className="flex items-center gap-2 mb-4">
-            <User className="h-5 w-5 text-primary" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-black text-xs font-bold">2</div>
             <h2 className="text-lg font-semibold">Informations personnelles</h2>
           </div>
           
@@ -325,13 +387,20 @@ export default function KycVerificationPage() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-400 block mb-1">Numéro CNI</label>
+              <label className="text-xs text-gray-400 block mb-1">
+                Numéro {idType === 'PASSPORT' ? 'Passeport' : idType === 'NIP' ? 'NIP' : 'CNI'}
+              </label>
               <input
                 type="text"
-                value={cniNumber}
-                onChange={(e) => setCniNumber(e.target.value)}
+                value={idType === 'PASSPORT' ? passportNumber : idType === 'NIP' ? nipNumber : cniNumber}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (idType === 'PASSPORT') setPassportNumber(val);
+                  else if (idType === 'NIP') setNipNumber(val);
+                  else setCniNumber(val);
+                }}
                 className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-primary/50"
-                placeholder="AB123456789"
+                placeholder={idType === 'PASSPORT' ? 'P00000000' : idType === 'NIP' ? '123456789' : 'AB123456789'}
               />
             </div>
             
@@ -357,28 +426,11 @@ export default function KycVerificationPage() {
           </div>
         </div>
 
-        {/* Document Upload Cards */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Documents requis</h2>
-
-          {/* ID Type Toggle */}
-          <div className="flex p-1 bg-surface/50 rounded-xl mb-4 border border-white/10">
-            <button
-              onClick={() => setIdType('CNI')}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition ${
-                idType === 'CNI' ? 'bg-primary text-black' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Carte d'identité (CNI)
-            </button>
-            <button
-              onClick={() => setIdType('PASSPORT')}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition ${
-                idType === 'PASSPORT' ? 'bg-primary text-black' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Passeport
-            </button>
+        {/* Step 3: Document Uploads */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-black text-xs font-bold">3</div>
+            <h2 className="text-lg font-semibold text-white">Téléversez vos documents</h2>
           </div>
           
           {Object.entries(DOCUMENT_CONFIG)
@@ -386,22 +438,30 @@ export default function KycVerificationPage() {
               const docType = key as DocumentType;
               
               // 1. Filter by ID Type Preference
-              if (docType === 'PASSPORT' && idType === 'CNI') return false;
-              if ((docType === 'CNI_FRONT' || docType === 'CNI_BACK') && idType === 'PASSPORT') return false;
+              if (docType === 'PASSPORT' && idType !== 'PASSPORT') return false;
+              if (docType === 'NIP' && idType !== 'NIP') return false;
+              if ((docType === 'CNI_FRONT' || docType === 'CNI_BACK') && idType !== 'CNI') return false;
               
               // 2. Filter by Level Requirements (Progressive Disclosure)
               // Only show documents that are:
               // - Required for the NEXT level
               // - OR Alreay uploaded/interacted with (History)
+              // - OR belong to the CURRENTLY SELECTED idType (Force display)
               const isRequired = kycStatus?.requiredDocuments?.includes(docType);
               const hasExistingDoc = kycStatus?.documents?.some(d => d.type === docType);
               
-              return isRequired || hasExistingDoc;
+              const isIdDoc = ['CNI_FRONT', 'CNI_BACK', 'PASSPORT', 'NIP'].includes(docType);
+              
+              return isRequired || hasExistingDoc || isIdDoc;
             })
             .map(([key, config]) => {
             const docType = key as DocumentType;
             const doc = getDocumentStatus(docType);
             const Icon = config.icon;
+            
+            const dynamicDescription = docType === 'SELFIE' 
+              ? `Photo de vous tenant votre ${idType === 'PASSPORT' ? 'Passeport' : idType === 'NIP' ? 'NIP' : 'CNI'}`
+              : config.description;
 
             return (
               <div
@@ -423,7 +483,7 @@ export default function KycVerificationPage() {
                     </div>
                     <div>
                       <p className="font-medium">{config.label}</p>
-                      <p className="text-xs text-gray-400">{config.description}</p>
+                      <p className="text-xs text-gray-400">{dynamicDescription}</p>
                     </div>
                   </div>
                   {getStatusIcon(doc?.status)}
@@ -463,7 +523,7 @@ export default function KycVerificationPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Niveau 1 (50k/tx, 100k/jour)</span>
-                <span>CNI Recto <span className="text-primary">OU</span> Passeport</span>
+                <span>CNI Recto, Passeport <span className="text-primary">OU</span> NIP</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Niveau 2 (200k/tx, 500k/jour)</span>

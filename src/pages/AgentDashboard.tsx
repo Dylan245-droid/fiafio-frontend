@@ -7,9 +7,9 @@ import { fr } from 'date-fns/locale';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   ArrowDownLeft, Banknote, Wallet, History, RefreshCcw, LogOut,
-  TrendingUp, Award, ChevronRight, QrCode,
+  TrendingUp, Award, QrCode,
   Search, CheckCircle, Delete, ArrowLeft, User, AlertTriangle,
-  Bell, XCircle, Clock, Eye, DollarSign
+  Bell, XCircle, Clock, Eye, DollarSign, ShieldCheck
 } from 'lucide-react';
 import TransactionModal from '../components/TransactionModal';
 import ThemeToggle from '../components/ThemeToggle';
@@ -54,6 +54,7 @@ interface AgentStats {
     week: number;
     month: number;
   };
+  kycLevel: number;
   totalTransactions: number;
   activation: {
     status: 'PENDING_FLOAT' | 'ACTIVE' | 'SUSPENDED' | null;
@@ -191,11 +192,6 @@ export default function AgentDashboard() {
   const formatCurrency = (n: number) => 
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(n);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 17) return 'Bonsoir';
-    return 'Bonjour';
-  };
 
   const handleLogout = () => {
     logout();
@@ -570,36 +566,54 @@ export default function AgentDashboard() {
   // Main Dashboard
   return (
     <div className="min-h-screen bg-background p-4 font-sans text-white">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {getGreeting()}, {user?.fullName?.split(' ')[0]}
-            {stats?.level?.badge && <span className="ml-2">{stats.level.badge}</span>}
-          </h1>
-          <p className="text-sm text-gray-400">
-            Agent ID: <span className="font-mono text-primary">{user?.uniqueId}</span>
-          </p>
+      <div className="mx-auto max-w-6xl">
+        {/* Header Premium 2026 - Simplified */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between p-6 rounded-[2.5rem] bg-surface/20 border border-white/5 backdrop-blur-md gap-6">
+          <div className="flex items-center gap-5">
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+              <div className="relative h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 p-[1px]">
+                <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#111]">
+                  <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
+                    <User className="w-6 h-6 text-black" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">
+                Agent Protocol
+                {((stats?.kycLevel ?? 0) >= 2 && stats?.activation?.status === 'ACTIVE') && (
+                  <span className="ml-2 bg-primary px-2 py-0.5 rounded text-[9px] font-mono text-black">
+                    {user?.uniqueId}
+                  </span>
+                )}
+              </p>
+              <h1 className="text-2xl font-black uppercase tracking-tighter text-white">
+                {user?.fullName?.split(' ')[0]}
+                <span className="ml-2 opacity-30 text-xs font-mono tracking-widest">{stats?.level?.badge}</span>
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 self-end md:self-auto">
+            <ThemeToggle />
+            <div className="h-10 w-[1px] bg-white/10 mx-2 hidden md:block" />
+            <button 
+              type="button"
+              onClick={fetchData} 
+              className="rounded-xl bg-white/5 p-3 text-gray-400 hover:bg-primary/20 hover:text-primary transition-all border border-white/5"
+            >
+              <RefreshCcw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button 
+              type="button"
+              onClick={handleLogout} 
+              className="rounded-xl bg-white/5 p-3 text-red-400 hover:bg-red-500/20 transition-all border border-red-500/10"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <ThemeToggle />
-          <button 
-            type="button"
-            onClick={fetchData} 
-            disabled={refreshing}
-            className="rounded-full bg-surface p-2.5 text-gray-400 hover:bg-accent hover:text-primary disabled:opacity-50"
-          >
-            <RefreshCcw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
-          <button 
-            type="button"
-            onClick={handleLogout} 
-            className="rounded-full bg-surface p-2.5 text-gray-400 hover:bg-red-500/20 hover:text-red-500"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
 
       {/* Activation Steps Card for PENDING_FLOAT agents */}
       {stats?.activation?.status === 'PENDING_FLOAT' && (
@@ -610,32 +624,34 @@ export default function AgentDashboard() {
           </div>
           
           <p className="text-gray-400 text-sm mb-4">
-            Pour garantir la sécurité de tous, deux étapes simples sont nécessaires pour commencer vos opérations :
+            Pour garantir la sécurité de tous, {(stats?.kycLevel ?? 0) < 2 ? "deux étapes simples sont nécessaires" : "une dernière étape est nécessaire"} pour commencer vos opérations :
           </p>
 
           <div className="space-y-3 mb-4">
             {/* Step 1: KYC */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 text-sm font-bold text-blue-400">
-                1
+            {(stats?.kycLevel ?? 0) < 2 && (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 text-sm font-bold text-blue-400">
+                  1
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-white text-sm">Vérification KYC niveau 2</p>
+                  <p className="text-xs text-gray-500">Pièce d'identité + Selfie pour valider votre identité</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/kyc')}
+                  className="rounded-lg bg-blue-500/20 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/30"
+                >
+                  Vérifier
+                </button>
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-white text-sm">Vérification KYC niveau 2</p>
-                <p className="text-xs text-gray-500">CNI + Selfie pour valider votre identité</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate('/kyc')}
-                className="rounded-lg bg-blue-500/20 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/30"
-              >
-                Vérifier
-              </button>
-            </div>
+            )}
 
             {/* Step 2: First Float Deposit */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500/20 text-sm font-bold text-yellow-400">
-                2
+                {(stats?.kycLevel ?? 0) < 2 ? "2" : "1"}
               </div>
               <div className="flex-1">
                 <p className="font-medium text-white text-sm">Premier dépôt float de 100 000 FCFA</p>
@@ -680,97 +696,85 @@ export default function AgentDashboard() {
         </div>
       )}
 
-      {/* Float Balance Card with restrictions */}
-      <div className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-6 text-black relative">
-        <div className="flex items-center gap-2 opacity-80">
-          <Wallet className="h-5 w-5" />
-          <span className="font-medium">Float Disponible</span>
-        </div>
-        <div className="mt-3 text-4xl font-bold tracking-tighter">
-          {loading ? '...' : formatCurrency(floatBalance)}
-        </div>
-        <div className={`mt-4 flex gap-2 ${stats?.activation?.status !== 'ACTIVE' ? 'opacity-50 pointer-events-none' : ''}`}>
-          <button
-            type="button"
-            onClick={() => stats?.activation?.status === 'ACTIVE' && navigate('/float-request')}
-            disabled={stats?.activation?.status !== 'ACTIVE'}
-            className="flex-1 rounded-xl bg-black/20 py-3 text-sm font-semibold backdrop-blur-sm hover:bg-black/30"
-          >
-            💰 Demander Float
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/transactions')}
-            className="rounded-xl bg-black/10 px-4 py-3 text-sm font-semibold backdrop-blur-sm hover:bg-black/20"
-          >
-            <History className="h-5 w-5" />
-          </button>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-8">
+            {/* Float Balance Card - Premium Design */}
+            <div className="mb-8 overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary to-primary/60 p-6 sm:p-10 text-black relative shadow-2xl shadow-primary/10">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[80px] rounded-full" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1 px-2 rounded-lg bg-black/10 text-[10px] font-black uppercase tracking-widest">
+                  Agent Float Balance
+                </div>
+                {loading && <RefreshCcw className="w-3 h-3 animate-spin opacity-50" />}
+              </div>
+              <div className="text-4xl sm:text-6xl font-black tracking-tighter mb-8">
+                {formatCurrency(floatBalance)}
+              </div>
+              
+              <div className={`flex gap-3 relative z-10 ${stats?.activation?.status !== 'ACTIVE' ? 'opacity-50 pointer-events-none' : ''}`}>
+                <button
+                  type="button"
+                  onClick={() => stats?.activation?.status === 'ACTIVE' && navigate('/float-request')}
+                  className="flex-1 rounded-2xl bg-black text-white py-5 text-xs font-black uppercase tracking-widest hover:bg-black/80 transition-all flex items-center justify-center gap-2 shadow-xl shadow-black/20"
+                >
+                  💰 Demander Float
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/transactions')}
+                  className="w-16 h-16 rounded-2xl bg-black/10 flex items-center justify-center hover:bg-black/20 transition-all border border-white/10"
+                >
+                  <History className="h-6 w-6" />
+                </button>
+              </div>
 
-        {/* Overlay for non-active agents */}
-        {stats?.activation?.status !== 'ACTIVE' && stats?.activation?.status && (
-          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center rounded-b-3xl bg-black/80 backdrop-blur-sm py-3">
-            <p className="text-white/80 text-sm">🔒 Activez votre compte pour accéder à toutes les fonctionnalités</p>
-          </div>
-        )}
-      </div>
-
-      {/* Quick Actions with activation restrictions */}
-      <div className="mb-6 relative">
-        <div className={`grid grid-cols-2 gap-3 ${stats?.activation?.status !== 'ACTIVE' ? 'opacity-50 pointer-events-none' : ''}`}>
-          <button
-            type="button"
-            onClick={() => { setView('DEPOSIT'); resetFlow(); }}
-            disabled={stats?.activation?.status !== 'ACTIVE'}
-            className="flex flex-col items-center gap-2 rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-center transition hover:bg-green-500/20"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20 text-green-500">
-              <ArrowDownLeft className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-white">Dépôt</h3>
-              <p className="text-xs text-gray-400">Cash-In</p>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setView('MY_QR')}
-            disabled={stats?.activation?.status !== 'ACTIVE'}
-            className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-surface/30 p-4 text-center transition hover:bg-surface/50"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white">
-              <QrCode className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-white">QR Code</h3>
-              <p className="text-xs text-gray-400">Retrait rapide</p>
-            </div>
-          </button>
-        </div>
-
-        {/* Overlay for non-active agents */}
-        {stats?.activation?.status !== 'ACTIVE' && stats?.activation?.status && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/80 backdrop-blur-sm">
-            <div className="text-center px-4">
-              {stats.activation.status === 'PENDING_FLOAT' ? (
-                <>
-                  <p className="text-white font-medium text-sm">🔒 Opérations verrouillées</p>
-                  <p className="text-gray-400 text-xs mt-1">Complétez les étapes ci-dessus</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-red-400 font-medium text-sm">⛔ Compte suspendu</p>
-                  <p className="text-gray-400 text-xs mt-1">Contactez le support</p>
-                </>
-              )}
+              {/* Status indicator */}
+              <div className="mt-6 flex items-center gap-2">
+                <div className={`h-2.5 w-2.5 rounded-full ${stats?.activation?.status === 'ACTIVE' ? 'bg-black/40 animate-pulse' : 'bg-red-500'}`} />
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                  {stats?.activation?.status === 'ACTIVE' ? 'System fully operational' : 'Account Restricted'}
+                </span>
+              </div>
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="lg:col-span-4 space-y-6">
+             {/* Quick Actions simplified for desktop side */}
+             <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => navigate('/agent-commissions')}
+                  className="flex flex-col items-center gap-3 rounded-[2rem] border border-white/5 bg-surface/20 p-6 text-center transition hover:bg-primary/10 group"
+                >
+                  <div className="h-12 w-12 rounded-xl bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <TrendingUp className="h-6 w-6 text-green-500" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white">Earnings</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if ((stats?.kycLevel ?? 0) < 2 || stats?.activation?.status !== 'ACTIVE') {
+                      alert("Veuillez d'abord valider votre KYC Niveau 2 et effectuer votre premier dépôt pour accéder au QR Mode.");
+                      return;
+                    }
+                    setView('MY_QR');
+                  }}
+                  className={`flex flex-col items-center gap-3 rounded-[2rem] border border-white/5 bg-surface/20 p-6 text-center transition hover:bg-primary/10 group ${
+                    ((stats?.kycLevel ?? 0) < 2 || stats?.activation?.status !== 'ACTIVE') ? 'opacity-40 grayscale cursor-not-allowed' : ''
+                  }`}
+                >
+                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${
+                    ((stats?.kycLevel ?? 0) < 2 || stats?.activation?.status !== 'ACTIVE') ? 'bg-gray-500/20' : 'bg-primary/20'
+                  }`}>
+                    <QrCode className={`h-6 w-6 ${((stats?.kycLevel ?? 0) < 2 || stats?.activation?.status !== 'ACTIVE') ? 'text-gray-500' : 'text-primary'}`} />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white">QR Mode</span>
+                </button>
+             </div>
+          </div>
+        </div>
 
       {/* Requests Management Section - Only fully accessible when active */}
-      <div className={`mb-6 space-y-3 ${stats?.activation?.status !== 'ACTIVE' ? 'opacity-40 pointer-events-none' : ''}`}>
+      <div className={`mt-12 mb-6 space-y-3 ${stats?.activation?.status !== 'ACTIVE' ? 'opacity-40 pointer-events-none' : ''}`}>
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-primary" />
           <h2 className="font-semibold text-white">Gestion des Demandes</h2>
@@ -1096,67 +1100,77 @@ export default function AgentDashboard() {
                 Commissions
               </div>
               <p className="mt-1 text-xl font-bold text-green-500">{formatCurrency(stats.commissions.month)}</p>
-              <p className="text-xs text-gray-500">Ce mois</p>
+              <p className="text-xs text-gray-500">Commission ce mois</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Recent Transactions */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold text-white">Activité Récente</h2>
-          <button 
-            type="button"
-            onClick={() => navigate('/transactions')} 
-            className="flex items-center gap-1 text-sm text-primary hover:underline"
-          >
-            Voir tout <ChevronRight className="h-4 w-4" />
-          </button>
+      {/* Transaction History - Timeline Style */}
+      <div className="mb-8 rounded-[2.5rem] border border-white/5 bg-surface/20 p-8 backdrop-blur-md">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">
+              Flux Opérationnel
+            </h3>
+            <p className="text-[10px] font-mono text-primary/60 uppercase">Dernières transactions</p>
+          </div>
+          <div className="flex -space-x-2">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="w-6 h-6 rounded-full border-2 border-[#111] bg-primary/20 flex items-center justify-center">
+                <ShieldCheck className="w-3 h-3 text-primary" />
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="space-y-2">
-          {loading ? (
-            [...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 animate-pulse rounded-2xl bg-surface/50" />
-            ))
-          ) : transactions.length > 0 ? (
-            transactions.slice(0, 4).map((tx) => (
-              <div 
-                key={tx.reference} 
-                onClick={() => setSelectedTxRef(tx.reference)}
-                className="flex cursor-pointer items-center justify-between rounded-2xl bg-surface/50 p-4 transition hover:bg-surface"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                    tx.direction === 'IN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                  }`}>
-                    {tx.direction === 'IN' ? <ArrowDownLeft className="h-5 w-5" /> : <Banknote className="h-5 w-5" />}
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">{tx.type}</p>
-                    <p className="text-xs text-gray-500">
-                      {format(new Date(tx.createdAt), 'd MMM, HH:mm', { locale: fr })}
-                    </p>
+        <div className="space-y-6">
+          {transactions.slice(0, 5).map((tx) => (
+            <div key={tx.reference} className="relative pl-8 group cursor-pointer" onClick={() => setSelectedTxRef(tx.reference)}>
+              {/* Timeline Line */}
+              <div className="absolute left-[11px] top-8 -bottom-6 w-[2px] bg-white/5 group-last:hidden" />
+              
+              {/* Dot */}
+              <div className="absolute left-0 top-1.5 w-[24px] h-[24px] rounded-full bg-surface/50 border border-white/10 flex items-center justify-center z-10 group-hover:border-primary/50 transition-colors">
+                <div className={`w-1.5 h-1.5 rounded-full ${tx.direction === 'IN' ? 'bg-green-500' : 'bg-primary'} animate-pulse`} />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white mb-1 group-hover:text-primary transition-colors truncate max-w-[150px] sm:max-w-none">
+                    {tx.type}
+                  </p>
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                    <Clock className="w-3 h-3" />
+                    {format(new Date(tx.createdAt), 'dd MMM, HH:mm', { locale: fr })}
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`font-bold ${tx.direction === 'IN' ? 'text-green-500' : 'text-white'}`}>
+                <div className="text-right shrink-0">
+                  <div className={`text-sm font-black ${tx.direction === 'IN' ? 'text-green-500' : 'text-white'}`}>
                     {tx.direction === 'IN' ? '+' : '-'}{formatCurrency(tx.amount)}
-                  </p>
-                  <p className={`text-xs ${tx.status === 'COMPLETED' ? 'text-green-500' : 'text-yellow-500'}`}>
-                    {tx.status === 'COMPLETED' ? 'Terminé' : tx.status}
-                  </p>
+                  </div>
+                  <div className={`text-[10px] font-black uppercase tracking-widest ${tx.status === 'COMPLETED' ? 'text-primary/40' : 'text-yellow-500/40'}`}>
+                    {tx.status}
+                  </div>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="py-8 text-center text-gray-500">
-              <History className="mx-auto mb-2 h-8 w-8 opacity-50" />
-              <p>Aucune transaction</p>
+            </div>
+          ))}
+          
+          {transactions.length === 0 && (
+            <div className="py-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+              <History className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Aucune transaction</p>
             </div>
           )}
         </div>
+
+        <button 
+          onClick={() => navigate('/transactions')}
+          className="w-full mt-10 py-4 rounded-2xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/10 transition-all"
+        >
+          Grand Livre Complet
+        </button>
       </div>
 
       {/* Transaction Modal */}
@@ -1258,6 +1272,7 @@ export default function AgentDashboard() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

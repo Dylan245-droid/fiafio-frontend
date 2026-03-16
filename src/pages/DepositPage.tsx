@@ -118,7 +118,7 @@ export default function DepositPage() {
       {/* Header */}
       <div className="mb-6 flex items-center gap-4">
         <button
-          onClick={() => step === 'method' ? navigate('/dashboard') : setStep('method')}
+          onClick={() => step === 'method' ? navigate(-1) : setStep('method')}
           className="rounded-full bg-surface p-2 text-gray-400 hover:bg-accent hover:text-white"
         >
           <ArrowLeft className="h-5 w-5" />

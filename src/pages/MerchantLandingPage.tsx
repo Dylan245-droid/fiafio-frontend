@@ -77,7 +77,7 @@ export default function MerchantLandingPage() {
 
       {/* Header */}
       <header className="relative z-10">
-        <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-3">
               <img
@@ -121,7 +121,7 @@ export default function MerchantLandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
+      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16">
         <div className="text-center">
           <ScrollReveal animation="fade-in" delay={0}>
             <div className="inline-flex items-center px-4 py-2 bg-primary/10 border border-primary/30 rounded-full text-primary text-sm mb-8">
@@ -168,7 +168,7 @@ export default function MerchantLandingPage() {
         </div>
 
         {/* Account Types Cards */}
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
           {accountTypes.map((type, index) => (
             <ScrollReveal key={type.title} animation="scale" delay={400 + index * 100}>
               <div
@@ -187,7 +187,7 @@ export default function MerchantLandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="relative z-10 py-20 bg-surface/30">
+      <section className="relative z-10 py-12 bg-surface/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollReveal animation="fade-up">
             <div className="text-center mb-12">
@@ -217,7 +217,7 @@ export default function MerchantLandingPage() {
       </section>
 
       {/* Consumer Section - Pour les particuliers */}
-      <section className="relative z-10 py-20">
+      <section className="relative z-10 py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollReveal animation="fade-up">
             <div className="text-center mb-12">
@@ -280,7 +280,7 @@ export default function MerchantLandingPage() {
       </section>
 
       {/* Merchant API Section */}
-      <section className="relative z-10 py-20 bg-surface/30">
+      <section className="relative z-10 py-12 bg-surface/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollReveal animation="slide-left">
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-3xl p-8 md:p-12">
@@ -327,7 +327,7 @@ export default function MerchantLandingPage() {
       </section>
 
       {/* Developer Section */}
-      <section className="relative z-10 py-20 bg-surface/30">
+      <section className="relative z-10 py-12 bg-surface/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollReveal animation="fade-up">
             <div className="text-center mb-12">
@@ -419,7 +419,7 @@ const data = await response.json();
       </section>
 
       {/* CTA Section */}
-      <section className="relative z-10 py-20">
+      <section className="relative z-10 py-12">
         <ScrollReveal animation="fade-up">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl font-bold text-white mb-4">
@@ -439,7 +439,7 @@ const data = await response.json();
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/5 py-8">
+      <footer className="relative z-10 border-t border-white/5 py-6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-3">

@@ -203,7 +203,7 @@ export default function FloatRequestPage() {
     <div className="flex min-h-screen flex-col bg-background font-sans text-white">
       <div className="p-4">
         <button 
-          onClick={() => navigate('/agent-dashboard')}
+          onClick={() => navigate(-1)}
           className="flex items-center gap-2 rounded-full bg-surface/50 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-surface hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { ArrowUpRight, ArrowDownLeft, Wallet, History, RefreshCcw, LogOut, Clock, Eye, X, Copy } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Wallet, History, RefreshCcw, LogOut, Clock, Eye, X, Copy, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -77,45 +77,54 @@ export default function Dashboard() {
     fetchAdditionalData();
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 17) return 'Bonsoir';
-    return 'Bonjour';
-  };
 
   return (
-    <div className="space-y-6 px-4 py-6 md:px-0">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">
-            {getGreeting()}, {user?.fullName?.split(' ')[0]}
-          </h1>
-          <p className="text-sm text-gray-400">ID: <span className="font-mono text-primary">{user?.uniqueId}</span></p>
+    <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-white">
+      <div className="mx-auto max-w-6xl">
+        {/* Header Premium 2026 - Simplified */}
+        <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between p-6 rounded-[2.5rem] bg-surface/20 border border-white/5 backdrop-blur-md gap-6">
+          <div className="flex items-center gap-5">
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+              <div className="relative h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 p-[1px]">
+                <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#111]">
+                  <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
+                    <User className="w-6 h-6 text-black" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">User Profile</p>
+              <h1 className="text-2xl font-black uppercase tracking-tighter text-white leading-tight">
+                {user?.fullName?.split(' ')[0]}
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 self-end md:self-auto">
+            <ThemeToggle />
+            <div className="h-10 w-[1px] bg-white/10 mx-2 hidden md:block" />
+            <button 
+              onClick={handleRefresh} 
+              className="rounded-xl bg-white/5 p-3 text-gray-400 hover:bg-primary/20 hover:text-primary transition-all border border-white/5"
+            >
+              <RefreshCcw className="h-5 w-5" />
+            </button>
+            <button 
+              onClick={handleLogout} 
+              className="rounded-xl bg-white/5 p-3 text-red-400 hover:bg-red-500/20 transition-all border border-red-500/10"
+              title="Déconnexion"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 self-end sm:self-auto">
-          <ThemeToggle />
-          <button 
-            onClick={handleRefresh} 
-            className="rounded-full bg-surface p-2 text-gray-400 hover:bg-accent hover:text-primary transition-colors"
-          >
-            <RefreshCcw className="h-5 w-5" />
-          </button>
-          <button 
-            onClick={handleLogout} 
-            className="rounded-full bg-surface p-2 text-gray-400 hover:bg-red-500/20 hover:text-red-500 transition-colors"
-            title="Déconnexion"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
 
       {/* KYC Verification Banner (for level 0 users) */}
       {kycLimits?.kycLevel === 0 && user?.role === 'CLIENT' && (
         <button
           onClick={() => navigate('/kyc')}
-          className="w-full rounded-2xl bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 p-4 text-left transition hover:border-red-500/50"
+          className="w-full mb-6 rounded-2xl bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 p-4 text-left transition hover:border-red-500/50"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20">
@@ -136,108 +145,81 @@ export default function Dashboard() {
       {/* Payment Requests from Merchants */}
       <PaymentRequestsCard onRequestHandled={handleRefresh} />
 
-      {/* Main Balance Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-primary p-6 text-black shadow-lg shadow-primary/20">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
+      {/* Main Balance Card - Premium Design */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary to-primary/60 p-8 text-black shadow-2xl shadow-primary/10 mb-6 font-sans">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[60px] rounded-full" />
         <div className="relative z-10">
-          <div className="flex items-center gap-2 opacity-80">
-            <Wallet className="h-5 w-5" />
-            <span className="font-medium">Solde Total</span>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1 px-2 rounded-lg bg-black/10 text-[10px] font-black uppercase tracking-widest">
+              Total Available Balance
+            </div>
+            {loading && <RefreshCcw className="h-3 w-3 animate-spin opacity-50" />}
           </div>
-          <div className="mt-4 text-3xl sm:text-4xl font-bold tracking-tighter truncate">
+          <div className="mt-4 text-5xl font-black tracking-tighter truncate leading-tight">
             {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(totalBalance)}
           </div>
           
           {/* Account breakdown for agents and merchants */}
           {(user?.role === 'AGENT' || merchantAccount) && (
-            <div className="mt-4 space-y-2 rounded-xl bg-black/10 p-3">
-              {/* Personal Wallet */}
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-black/40"></span>
-                  Mon Portefeuille
-                </span>
-                <span className="font-semibold">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-black/10 p-4 border border-white/10 backdrop-blur-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Mon Portefeuille</p>
+                <p className="text-xl font-bold">
                   {new Intl.NumberFormat('fr-FR').format(wallet.balance)} FCFA
-                </span>
+                </p>
               </div>
               
-              {/* Agent Float */}
-              {agentFloatAccount && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                    Mon Flottant Agent
-                    <span className="text-xs opacity-60">(min: 100K)</span>
-                  </span>
-                  <span className="font-semibold">
-                    {new Intl.NumberFormat('fr-FR').format(agentFloatAccount.balance)} FCFA
-                  </span>
-                </div>
-              )}
-              
-              {/* Merchant Account */}
               {merchantAccount && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-600"></span>
-                    Mes Recettes Business
-                  </span>
-                  <span className="font-semibold">
+                <div className="rounded-2xl bg-black/20 p-4 border border-white/10 backdrop-blur-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Business Revenue</p>
+                  <p className="text-xl font-bold">
                     {new Intl.NumberFormat('fr-FR').format(merchantAccount.balance)} FCFA
-                  </span>
+                  </p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Action Buttons with KYC restrictions */}
-          <div className="mt-6 relative">
-            <div className={`${user?.role === 'AGENT' ? 'grid-cols-2' : 'grid-cols-3'} grid gap-2 ${kycLimits && kycLimits.kycLevel === 0 && user?.role === 'CLIENT' ? 'opacity-50 pointer-events-none' : ''}`}>
-              {/* Send button - only for regular users, not agents */}
+          {/* Action Buttons */}
+          <div className="mt-8 relative">
+            <div className={`grid ${user?.role === 'AGENT' ? 'grid-cols-2' : 'grid-cols-3'} gap-3 ${kycLimits && kycLimits.kycLevel === 0 && user?.role === 'CLIENT' ? 'opacity-50 pointer-events-none' : ''}`}>
+              {/* Send button */}
               {user?.role !== 'AGENT' && (
                 <button 
                   onClick={() => kycLimits && kycLimits.perTransaction > 0 && navigate('/transfer')}
-                  disabled={!kycLimits || kycLimits.perTransaction === 0}
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3 font-semibold backdrop-blur-sm transition hover:bg-black/20"
+                  className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-black text-white py-4 transition hover:bg-black/80 shadow-xl shadow-black/20"
                 >
                   <ArrowUpRight className="h-5 w-5" />
-                  <span className="text-xs">Envoyer</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Envoyer</span>
                 </button>
               )}
               <button 
                 onClick={() => navigate('/deposit')}
-                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3 font-semibold backdrop-blur-sm transition hover:bg-black/20"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/10 py-4 font-semibold transition hover:bg-white/20 backdrop-blur-md"
               >
                 <ArrowDownLeft className="h-5 w-5" />
-                <span className="text-xs">Recharger</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Recharger</span>
               </button>
               <button 
                 onClick={() => kycLimits && kycLimits.perTransaction > 0 && navigate('/withdraw')}
-                disabled={!kycLimits || kycLimits.perTransaction === 0}
-                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/80 py-3 font-semibold text-white transition hover:bg-black"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-black py-4 font-semibold text-white transition hover:bg-black/80"
               >
                 <Wallet className="h-5 w-5" />
-                <span className="text-xs">Retrait</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Retrait</span>
               </button>
             </div>
 
-            {/* Overlay for KYC Level 0 - Bottom aligned */}
+            {/* Overlay for KYC Level 0 */}
             {kycLimits && kycLimits.kycLevel === 0 && user?.role === 'CLIENT' && (
-              <div className="absolute inset-x-0 bottom-0 rounded-b-xl bg-gradient-to-t from-black/90 to-black/70 backdrop-blur-sm p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-lg">🔒</span>
-                    <div>
-                      <p className="text-white text-sm font-medium">Vérification requise</p>
-                      <p className="text-gray-400 text-xs">Débloquez les transactions</p>
-                    </div>
-                  </div>
-                  <button
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/80 backdrop-blur-md p-6">
+                <div className="text-center">
+                   <p className="text-white text-sm font-black uppercase tracking-widest mb-1">KYC REQUIRED</p>
+                   <p className="text-gray-400 text-[10px] font-mono mb-6 uppercase tracking-widest">Identification phase pending</p>
+                   <button
                     onClick={() => navigate('/kyc')}
-                    className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-bold text-black hover:bg-primary/90"
+                    className="rounded-full bg-primary px-8 py-3 text-[10px] font-black uppercase tracking-widest text-black hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all font-bold"
                   >
-                    Vérifier
+                    Verify Identity
                   </button>
                 </div>
               </div>
@@ -451,57 +433,71 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recent Transactions */}
-      <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Activité Récente</h2>
-          <button onClick={() => navigate('/transactions')} className="text-sm text-primary hover:underline">Voir Tout</button>
+      {/* Recent Activity Section - Timeline Design */}
+      <div className="mb-8 rounded-[2.5rem] border border-white/5 bg-surface/20 p-8 backdrop-blur-md">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-1">
+              Flux Financier
+            </h3>
+            <p className="text-[10px] font-mono text-primary/60 uppercase">Dernières transactions</p>
+          </div>
+          <div className="flex -space-x-2">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="w-6 h-6 rounded-full border-2 border-[#111] bg-primary/20 flex items-center justify-center">
+                <ShieldCheck className="w-3 h-3 text-primary" />
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="space-y-3">
-          {loading ? (
-            [...Array(3)].map((_, i) => (
-              <div key={i} className="h-20 animate-pulse rounded-2xl bg-surface" />
-            ))
-          ) : transactions.length > 0 ? (
-            transactions.map((tx) => (
-              <div 
-                key={tx.reference} 
-                onClick={() => setSelectedTxRef(tx.reference)}
-                className="flex cursor-pointer items-center justify-between rounded-2xl bg-surface p-4 transition hover:bg-accent hover:scale-[1.01]"
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-full ${
-                    tx.direction === 'IN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                  }`}>
-                    {tx.direction === 'IN' ? <ArrowDownLeft className="h-6 w-6" /> : <ArrowUpRight className="h-6 w-6" />}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white">{tx.type}</h3>
-                    <p className="text-sm text-gray-400">{format(new Date(tx.createdAt), 'MMM d, HH:mm')}</p>
+        <div className="space-y-6">
+          {transactions.slice(0, 5).map((tx) => (
+            <div key={tx.reference} className="relative pl-8 group cursor-pointer" onClick={() => setSelectedTxRef(tx.reference)}>
+              {/* Timeline Line */}
+              <div className="absolute left-[11px] top-8 bottom-[-24px] w-[2px] bg-white/5 group-last:hidden" />
+              
+              {/* Dot */}
+              <div className="absolute left-0 top-1.5 w-[24px] h-[24px] rounded-full bg-surface/50 border border-white/10 flex items-center justify-center z-10 group-hover:border-primary/50 transition-colors">
+                <div className={`w-1.5 h-1.5 rounded-full ${tx.direction === 'IN' ? 'bg-green-500' : 'bg-primary'} animate-pulse`} />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white mb-1 group-hover:text-primary transition-colors truncate max-w-[150px] sm:max-w-none">
+                    {tx.type}
+                  </p>
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                    <Clock className="w-3 h-3" />
+                    {format(new Date(tx.createdAt), 'dd MMM, HH:mm')}
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className={`block font-bold ${
-                    tx.direction === 'IN' ? 'text-green-500' : 'text-white'
-                  }`}>
-                    {tx.direction === 'IN' ? '+' : '-'}{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(tx.amount)}
-                  </span>
-                  <span className={`text-xs ${
-                    tx.status === 'COMPLETED' ? 'text-green-500' : 'text-yellow-500'
-                  }`}>
+                <div className="text-right shrink-0">
+                  <div className={`text-sm font-black ${tx.direction === 'IN' ? 'text-green-500' : 'text-white'}`}>
+                    {tx.direction === 'IN' ? '+' : '-'}{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(tx.amount)}
+                  </div>
+                  <div className={`text-[10px] font-black uppercase tracking-widest ${tx.status === 'COMPLETED' ? 'text-primary/40' : 'text-yellow-500/40'}`}>
                     {tx.status}
-                  </span>
+                  </div>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="py-8 text-center text-gray-500">
-              <History className="mx-auto mb-2 h-8 w-8 opacity-50" />
-              No transactions yet
+            </div>
+          ))}
+          
+          {transactions.length === 0 && (
+            <div className="py-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+              <History className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Aucune transaction</p>
             </div>
           )}
         </div>
+
+        <button 
+          onClick={() => navigate('/transactions')}
+          className="w-full mt-10 py-4 rounded-2xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/10 transition-all"
+        >
+          Grand Livre Complet
+        </button>
       </div>
 
       {/* Transaction Detail Modal */}
@@ -617,6 +613,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

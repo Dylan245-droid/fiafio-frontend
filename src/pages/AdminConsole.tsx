@@ -58,6 +58,8 @@ export default function AdminConsole() {
   
   // KYC verification state
   const [kycRequests, setKycRequests] = useState<any[]>([]);
+  const [kycSearch, setKycSearch] = useState('');
+  const [kycFilterPendingOnly, setKycFilterPendingOnly] = useState(true);
   const [kycProcessingId, setKycProcessingId] = useState<number | null>(null);
   
   // Revenue state
@@ -75,6 +77,7 @@ export default function AdminConsole() {
     fetchInjections();
     fetchFloatRequests(); // Load on mount for badge count
     fetchRevenue(); // Load revenue on mount for dashboard card
+    fetchKycRequests(); // Load on mount for KYC badge
   }, []);
 
   useEffect(() => {
@@ -285,6 +288,18 @@ export default function AdminConsole() {
     }
   };
 
+  const handleViewDocument = async (docId: number) => {
+    try {
+      const res = await api.get(`/kyc/admin/documents/${docId}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      window.open(url, '_blank');
+      // Cleanup URL after some time
+      setTimeout(() => URL.revokeObjectURL(url), 1000 * 60 * 5);
+    } catch (e: any) {
+      alert('Erreur lors de la visualisation du document');
+    }
+  };
+
   const handleApproveFloat = async (id: number) => {
     if (!confirm('Confirmer le transfert de float vers cet agent ?')) return;
     setProcessingId(id);
@@ -359,27 +374,33 @@ export default function AdminConsole() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-white">
       {/* Header */}
-      <div className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Console Admin</h1>
-          <p className="text-gray-400 text-sm">Gestion et supervision Fiafio</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-surface/20 p-6 rounded-[2rem] border border-white/5 backdrop-blur-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(212,255,0,0.2)]">
+            <img src="/fiafio_logo.png" alt="" className="w-8 h-8 rounded-md" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tighter text-white uppercase">Console Admin</h1>
+            <p className="text-gray-500 text-[10px] font-mono tracking-widest uppercase">Management Protocol v2.6</p>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <ThemeToggle />
-          <div className="flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1.5 text-xs font-medium text-green-500 border border-green-500/20 whitespace-nowrap">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-            </span>
-            OPÉRATIONNEL
+        <div className="flex items-center justify-between sm:justify-end gap-3 pt-4 sm:pt-0 border-t sm:border-t-0 border-white/5">
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <div className="flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1.5 text-[10px] font-black text-green-500 border border-green-500/20 tracking-widest uppercase">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-500"></span>
+              </span>
+              ONLINE
+            </div>
           </div>
           <button
             type="button"
             onClick={() => { logout(); navigate('/login'); }}
-            className="flex items-center gap-2 rounded-full bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-red-500/10 p-2.5 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all active:scale-95"
           >
-            <LogOut className="h-4 w-4" />
-            Déconnexion
+            <LogOut className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -392,39 +413,41 @@ export default function AdminConsole() {
         </div>
       )}
 
-      {/* Navigation Tabs */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {[
-          { key: 'DASHBOARD', label: 'Tableau de Bord', icon: TrendingUp },
-          { key: 'FLOAT_REQUESTS', label: 'Demandes Float', icon: Wallet, badge: floatRequests.length },
-          { key: 'KYC', label: 'Vérif KYC', icon: Shield, badge: kycRequests.filter(r => r.documents.some((d: any) => d.status === 'PENDING')).length },
-          { key: 'REVENUE', label: 'Recettes', icon: DollarSign },
-          { key: 'LEDGER', label: 'Historique Transactions', icon: Activity },
-          { key: 'OHADA_LEDGER', label: 'Grand Livre', icon: FileText },
-          { key: 'PLAN_COMPTABLE', label: 'Plan Comptable', icon: BookOpen },
-          { key: 'ALERTS', label: 'Alertes', icon: ShieldAlert, badge: stats?.openAlerts },
-          { key: 'AUDIT', label: 'Audit IA', icon: BrainCircuit },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 sm:px-5 sm:py-3 text-sm font-medium transition whitespace-nowrap ${
-              activeTab === tab.key 
-                ? 'bg-primary text-black' 
-                : 'bg-surface/50 text-gray-400 hover:bg-surface hover:text-white'
-            }`}
-          >
-            <tab.icon className="h-4 w-4 shrink-0" />
-            {tab.label}
-            {tab.badge !== undefined && tab.badge > 0 && (
-              <span className={`ml-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
-                activeTab === tab.key ? 'bg-black/20 text-black' : 'bg-red-500 text-white'
-              }`}>
-                {tab.badge}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* Navigation Tabs - Swipable on Mobile */}
+      <div className="mb-8 -mx-4 px-4 pt-4 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="flex min-w-max gap-3 pb-2">
+          {[
+            { key: 'DASHBOARD', label: 'Dashboard', icon: TrendingUp },
+            { key: 'FLOAT_REQUESTS', label: 'Float', icon: Wallet, badge: floatRequests.length },
+            { key: 'KYC', label: 'KYC', icon: Shield, badge: kycRequests.filter(r => r.documents.some((d: any) => d.status === 'PENDING')).length },
+            { key: 'REVENUE', label: 'Recettes', icon: DollarSign },
+            { key: 'LEDGER', label: 'Transactions', icon: Activity },
+            { key: 'OHADA_LEDGER', label: 'Comptes', icon: FileText },
+            { key: 'PLAN_COMPTABLE', label: 'Plan', icon: BookOpen },
+            { key: 'ALERTS', label: 'Alertes', icon: ShieldAlert, badge: stats?.openAlerts },
+            { key: 'AUDIT', label: 'Audit IA', icon: BrainCircuit },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`flex items-center gap-2.5 rounded-2xl px-6 py-4 text-xs font-black tracking-widest uppercase transition-all active:scale-95 ${
+                activeTab === tab.key 
+                  ? 'bg-primary text-black shadow-[0_10px_20px_rgba(212,255,0,0.15)] -translate-y-1' 
+                  : 'bg-surface/40 text-gray-500 hover:text-white border border-white/5'
+              }`}
+            >
+              <tab.icon className={`h-4 w-4 shrink-0 transition-transform ${activeTab === tab.key ? 'scale-110' : ''}`} />
+              <span>{tab.label}</span>
+              {tab.badge !== undefined && tab.badge > 0 && (
+                <span className={`flex h-5 min-w-5 items-center justify-center rounded-lg px-1.5 text-[10px] font-black ${
+                  activeTab === tab.key ? 'bg-black/10 text-black' : 'bg-red-500 text-white shadow-[0_5px_10px_rgba(239,68,68,0.3)]'
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}
@@ -433,67 +456,55 @@ export default function AdminConsole() {
         {activeTab === 'DASHBOARD' && (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/20 to-transparent p-4 md:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-primary">
-                    <Building className="h-4 w-4 shrink-0" />
-                    <span className="whitespace-nowrap">Trésorerie Fiafio</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="rounded-[2rem] border border-primary/20 bg-primary/5 p-6 backdrop-blur-sm group hover:bg-primary/10 transition-colors">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                    <Building className="h-5 w-5" />
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowRechargeModal(true)}
-                    className="shrink-0 rounded-lg bg-primary/20 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/30"
+                    className="rounded-lg bg-primary text-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform"
                   >
-                    + Recharger
+                    + Recharge
                   </button>
                 </div>
-                <div className="mt-2 text-xl font-bold text-white md:text-2xl">
+                <div className="text-2xl font-black text-white">
                   {formatCurrency(stats?.treasuryBalance || 0)}
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Solde actuel</p>
+                <p className="mt-1 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Trésorerie Fiafio</p>
               </div>
-              <div className="rounded-3xl border border-white/5 bg-surface/30 p-6">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
-                  <Users className="h-4 w-4" />
-                  Utilisateurs
+
+              <div className="rounded-[2rem] border border-white/5 bg-surface/30 p-6 backdrop-blur-sm group hover:border-white/10 transition-all">
+                <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 mb-6 font-black uppercase overflow-hidden">
+                  <Users className="h-5 w-5" />
                 </div>
-                <div className="mt-2 text-3xl font-bold text-white">{stats?.totalUsers || 0}</div>
-                <p className="mt-1 text-xs text-gray-500">Inscrits</p>
+                <div className="text-3xl font-black text-white tracking-tighter">{stats?.totalUsers || 0}</div>
+                <p className="mt-1 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Utilisateurs inscrits</p>
               </div>
-              <div className="rounded-3xl border border-white/5 bg-surface/30 p-6">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
-                  <Activity className="h-4 w-4" />
-                  Transactions
+
+              <div className="rounded-[2rem] border border-white/5 bg-surface/30 p-6 backdrop-blur-sm group hover:border-white/10 transition-all">
+                <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 mb-6">
+                  <Activity className="h-5 w-5" />
                 </div>
-                <div className="mt-2 text-3xl font-bold text-white">{stats?.totalTransactions || 0}</div>
-                <p className="mt-1 text-xs text-gray-500">Total</p>
+                <div className="text-3xl font-black text-white tracking-tighter">{stats?.totalTransactions || 0}</div>
+                <p className="mt-1 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Transactions globales</p>
               </div>
-              <div className="rounded-3xl border border-white/5 bg-surface/30 p-6">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
-                  <TrendingUp className="h-4 w-4" />
-                  Volume (24h)
+
+              <div className="rounded-[2rem] border border-green-500/20 bg-green-500/5 p-6 backdrop-blur-sm group hover:bg-green-500/10 transition-all">
+                <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center text-green-400 mb-6">
+                  <DollarSign className="h-5 w-5" />
                 </div>
-                <div className="mt-2 text-2xl font-bold text-primary">
-                  {formatCurrency(stats?.todayVolume || 0)}
-                </div>
-                <p className="mt-1 text-xs text-gray-500">Aujourd'hui</p>
-              </div>
-              <div className="rounded-3xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-transparent p-6">
-                <div className="flex items-center gap-2 text-sm font-medium text-green-400">
-                  <DollarSign className="h-4 w-4" />
-                  Recettes (mois)
-                </div>
-                <div className="mt-2 text-2xl font-bold text-green-400">
+                <div className="text-2xl font-black text-green-400">
                   {formatCurrency(revenue?.thisMonth || 0)}
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  {revenue && revenue.growth !== 0 && (
-                    <span className={revenue.growth > 0 ? 'text-green-400' : 'text-red-400'}>
-                      {revenue.growth > 0 ? '+' : ''}{revenue.growth}%
-                    </span>
-                  )} vs mois dernier
-                </p>
+                <p className="mt-1 text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-2">Recettes du mois</p>
+                {revenue && revenue.growth !== 0 && (
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${revenue.growth > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    {revenue.growth > 0 ? '↑' : '↓'} {Math.abs(revenue.growth)}% <span className="text-gray-500 opacity-50 ml-1">VS LAST</span>
+                  </span>
+                )}
               </div>
             </div>
 
@@ -534,28 +545,57 @@ export default function AdminConsole() {
 
             {/* Injection History */}
             {injections.length > 0 && (
-              <div className="rounded-3xl border border-white/5 bg-surface/30 p-6">
-                <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
-                  Historique Injections Trésorerie
-                </h3>
-                <div className="space-y-2">
-                  {injections.slice(0, 5).map((inj) => (
-                    <div key={inj.id} className="flex items-center justify-between rounded-xl bg-black/20 p-3">
-                      <div>
-                        <p className="text-sm text-white">{inj.description || 'Injection trésorerie'}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(inj.createdAt).toLocaleDateString('fr-FR', { 
-                            day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-                          })}
-                        </p>
+              <div className="rounded-[2.5rem] border border-white/5 bg-surface/20 p-8 backdrop-blur-md">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
+                    Flux Trésorerie Recents
+                  </h3>
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="w-6 h-6 rounded-full border-2 border-[#111] bg-primary/20 flex items-center justify-center">
+                        <ShieldCheck className="w-3 h-3 text-primary" />
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-green-500">+{formatCurrency(inj.amount)}</p>
-                        <p className="text-xs text-gray-500">Solde: {formatCurrency(inj.balanceAfter)}</p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {injections.slice(0, 5).map((inj) => (
+                    <div key={inj.id} className="relative pl-8 group">
+                      {/* Timeline Line */}
+                      <div className="absolute left-[11px] top-8 bottom-[-24px] w-[2px] bg-white/5 group-last:hidden" />
+                      
+                      {/* Dot */}
+                      <div className="absolute left-0 top-1.5 w-[24px] h-[24px] rounded-full bg-surface/50 border border-white/10 flex items-center justify-center z-10 group-hover:border-primary/50 transition-colors">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-bold text-white mb-1 group-hover:text-primary transition-colors">
+                            {inj.description || 'Injection trésorerie Protocol'}
+                          </p>
+                          <div className="flex items-center gap-2 text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                            <Clock className="w-3 h-3" />
+                            {formatDate(inj.createdAt)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-black text-primary">
+                            +{formatCurrency(inj.amount)}
+                          </div>
+                          <div className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+                            Solde: {formatCurrency(inj.balanceAfter)}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
+
+                <button className="w-full mt-8 py-4 rounded-2xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/10 transition-all">
+                  Voir tout le grand livre
+                </button>
               </div>
             )}
           </>
@@ -683,89 +723,194 @@ export default function AdminConsole() {
         {/* KYC VERIFICATION TAB */}
         {activeTab === 'KYC' && (
           <div className="space-y-4">
-            <div className="rounded-2xl bg-blue-500/10 border border-blue-500/20 p-4 text-blue-400 text-sm">
-              <Shield className="mr-2 inline h-5 w-5" />
-              <span className="font-bold">Rappel Exigences :</span>
-              <ul className="mt-2 list-disc pl-5 space-y-1">
-                <li><span className="font-semibold">Niveau 1 :</span> CNI Recto <span className="font-bold">OU</span> Passeport</li>
-                <li><span className="font-semibold">Niveau 2 :</span> (CNI Recto + Verso + Selfie) <span className="font-bold">OU</span> (Passeport + Selfie)</li>
-                <li><span className="font-semibold">Niveau 3 :</span> Niveau 2 + Justificatif de domicile</li>
-              </ul>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface/10 p-4 rounded-3xl border border-white/5">
+              <div className="flex flex-1 flex-col sm:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full max-w-md">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par nom ou numéro..."
+                    value={kycSearch}
+                    onChange={(e) => setKycSearch(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-surface/50 pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-primary/50"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setKycFilterPendingOnly(true)}
+                    className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-all ${
+                      kycFilterPendingOnly 
+                        ? 'bg-primary text-black shadow-lg shadow-primary/20 scale-105' 
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    À Valider ({kycRequests.filter(u => u.documents.some((d: any) => d.status === 'PENDING')).length})
+                  </button>
+                  <button
+                    onClick={() => setKycFilterPendingOnly(false)}
+                    className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-all ${
+                      !kycFilterPendingOnly 
+                        ? 'bg-white text-black scale-105' 
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    Tout ({kycRequests.length})
+                  </button>
+                </div>
+              </div>
+              
+              <div className="rounded-2xl bg-blue-500/10 border border-blue-500/20 p-2.5 text-blue-400 text-[10px] hidden lg:block">
+                <Shield className="mr-2 inline h-4 w-4" />
+                Niveau 1: CNI/Pass/NIP · Niveau 2: + Selfie
+              </div>
             </div>
 
             {kycRequests.length === 0 ? (
               <div className="rounded-3xl bg-surface/30 p-16 text-center">
                 <Shield className="mx-auto mb-4 h-16 w-16 text-gray-600" />
-                <h3 className="text-xl font-bold text-white">Aucune demande en attente</h3>
+                <h3 className="text-xl font-bold text-white">Aucune demande trouvée</h3>
                 <p className="text-gray-500">Les nouvelles demandes de vérification apparaîtront ici.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {kycRequests.map((user) => (
-                  <div key={user.userId} className="rounded-3xl border border-blue-500/30 bg-surface/30 p-6">
-                    <div className="mb-4 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-bold text-white">{user.fullName || 'Utilisateur'}</h3>
-                        <p className="text-sm text-gray-500">{user.phone}</p>
-                      </div>
-                      <span className="rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold text-blue-400">
-                        Niveau {user.currentLevel}
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      {user.documents.map((doc: any) => (
-                        <div 
-                          key={doc.id} 
-                          className="flex items-center justify-between rounded-xl bg-black/20 p-3"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/20">
-                              <FileText className="h-5 w-5 text-blue-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-white">
-                                {doc.type === 'CNI_FRONT' ? 'CNI Recto' : 
-                                 doc.type === 'CNI_BACK' ? 'CNI Verso' :
-                                 doc.type === 'PASSPORT' ? 'Passeport' :
-                                 doc.type === 'SELFIE' ? 'Selfie' : 'Justificatif domicile'}
-                              </p>
-                              <p className="text-xs text-gray-500">{formatDate(doc.createdAt)}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={`${api.defaults.baseURL}/kyc/admin/documents/${doc.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="rounded-lg bg-gray-500/20 p-2 text-gray-400 hover:bg-gray-500/30"
-                              title="Voir le document"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </a>
-                            <button
-                              onClick={() => handleApproveDoc(doc.id)}
-                              disabled={kycProcessingId === doc.id}
-                              className="rounded-lg bg-green-500/20 p-2 text-green-400 hover:bg-green-500/30 disabled:opacity-50"
-                              title="Approuver"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleRejectDoc(doc.id)}
-                              disabled={kycProcessingId === doc.id}
-                              className="rounded-lg bg-red-500/20 p-2 text-red-400 hover:bg-red-500/30 disabled:opacity-50"
-                              title="Rejeter"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          </div>
+                {[...kycRequests]
+                  .filter(u => {
+                    const search = kycSearch.toLowerCase();
+                    const matchesSearch = u.fullName?.toLowerCase().includes(search) || u.phone?.includes(search);
+                    
+                    if (kycFilterPendingOnly) {
+                      return matchesSearch && u.documents.some((d: any) => d.status === 'PENDING');
+                    }
+                    return matchesSearch;
+                  })
+                  .sort((a, b) => {
+                    // Sorting only matters in "ALL" mode, but we keep it consistent
+                    const aPending = a.documents.some((d: any) => d.status === 'PENDING');
+                    const bPending = b.documents.some((d: any) => d.status === 'PENDING');
+                    if (aPending && !bPending) return -1;
+                    if (!aPending && bPending) return 1;
+                    return 0;
+                  })
+                  .map((user) => {
+                    const isPending = user.documents.some((d: any) => d.status === 'PENDING');
+                    return (
+                    <div key={user.userId} className={`rounded-3xl border transition-all duration-300 ${
+                      isPending 
+                        ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/10 shadow-[0_0_20px_rgba(212,255,0,0.05)]' 
+                        : 'border-white/5 bg-surface/20 opacity-70 grayscale-[0.5]'
+                    } p-6`}>
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-bold text-white">{user.fullName || 'Utilisateur'}</h3>
+                          <p className="text-sm font-mono text-gray-500">{user.phone}</p>
                         </div>
-                      ))}
+                        <div className="text-right">
+                          <span className={`inline-block rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest ${
+                            isPending 
+                              ? 'bg-primary text-black shadow-lg shadow-primary/20' : 
+                            user.kycStatus === 'VERIFIED' ? 'bg-green-500/20 text-green-400' :
+                            user.kycStatus === 'REJECTED' ? 'bg-red-500/20 text-red-400' :
+                            'bg-surface/50 text-gray-500'
+                          }`}>
+                            {isPending ? 'À VALIDER' : 
+                             user.kycStatus === 'VERIFIED' ? 'Vérifié' : 
+                             user.kycStatus === 'REJECTED' ? 'Rejeté' : 'INCOMPLET'}
+                          </span>
+                          <p className="mt-1 text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Niveau {user.currentLevel}</p>
+                        </div>
+                      </div>
+
+                      {/* Display declared ID numbers */}
+                      <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {user.cniNumber && (
+                          <div className="rounded-xl bg-black/20 p-2 border border-white/5">
+                            <p className="text-[8px] uppercase tracking-widest text-gray-500 mb-0.5">CNI</p>
+                            <p className="text-xs font-mono font-bold text-gray-300 truncate" title={user.cniNumber}>{user.cniNumber}</p>
+                          </div>
+                        )}
+                        {user.passportNumber && (
+                          <div className="rounded-xl bg-black/20 p-2 border border-white/5">
+                            <p className="text-[8px] uppercase tracking-widest text-gray-500 mb-0.5">Passeport</p>
+                            <p className="text-xs font-mono font-bold text-gray-300 truncate" title={user.passportNumber}>{user.passportNumber}</p>
+                          </div>
+                        )}
+                        {user.nipNumber && (
+                          <div className="rounded-xl bg-black/20 p-2 border border-primary/20">
+                            <p className="text-[8px] uppercase tracking-widest text-primary mb-0.5">NIP</p>
+                            <p className="text-xs font-mono font-bold text-primary truncate" title={user.nipNumber}>{user.nipNumber}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        {user.documents.map((doc: any) => (
+                          <div 
+                            key={doc.id} 
+                            className={`flex items-center justify-between rounded-xl p-3 ${
+                              doc.status === 'PENDING' ? 'bg-white/5 border border-white/10' : 'bg-black/20 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                                doc.status === 'PENDING' ? 'bg-primary/20 text-primary' : 'bg-gray-500/20 text-gray-400'
+                              }`}>
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-white">
+                                  {doc.type === 'CNI_FRONT' ? 'CNI Recto' : 
+                                   doc.type === 'CNI_BACK' ? 'CNI Verso' :
+                                   doc.type === 'PASSPORT' ? 'Passeport' :
+                                   doc.type === 'NIP' ? 'NIP' :
+                                   doc.type === 'SELFIE' ? `Selfie avec ${user.passportNumber ? 'Passeport' : user.nipNumber ? 'NIP' : 'CNI'}` : 'Justificatif domicile'}
+                                </p>
+                                <p className="text-[10px] text-gray-500">{formatDate(doc.createdAt)}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              {doc.status !== 'PENDING' && (
+                                <span className={`text-[10px] font-black uppercase tracking-widest mr-2 ${
+                                  doc.status === 'APPROVED' ? 'text-green-500' : 'text-red-500'
+                                }`}>
+                                  {doc.status === 'APPROVED' ? 'OK' : 'X'}
+                                </span>
+                              )}
+                              <button
+                                onClick={() => handleViewDocument(doc.id)}
+                                className="rounded-lg bg-gray-500/20 p-2 text-gray-400 hover:bg-gray-500/30"
+                                title="Voir le document"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              {doc.status === 'PENDING' && (
+                                <>
+                                  <button
+                                    onClick={() => handleApproveDoc(doc.id)}
+                                    disabled={kycProcessingId === doc.id}
+                                    className="rounded-lg bg-green-500/20 p-2 text-green-400 hover:bg-green-500/30 disabled:opacity-50"
+                                    title="Approuver"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectDoc(doc.id)}
+                                    disabled={kycProcessingId === doc.id}
+                                    className="rounded-lg bg-red-500/20 p-2 text-red-400 hover:bg-red-500/30 disabled:opacity-50"
+                                    title="Rejeter"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

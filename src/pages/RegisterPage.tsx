@@ -122,7 +122,7 @@ export default function RegisterPage() {
         {step !== 'SUCCESS' && step !== 'ACTIVATION_SENT' && (
           <button
             onClick={() => {
-              if (step === 'TYPE') navigate('/');
+              if (step === 'TYPE') navigate(-1);
               else if (step === 'INFO') setStep('TYPE');
             }}
             className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition"
