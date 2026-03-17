@@ -145,10 +145,11 @@ export default function LoginPage() {
               <img 
                 src="/fiafio_logo.png" 
                 alt="Fiafio" 
-                className="mx-auto mb-4 h-20 w-20 rounded-2xl object-contain shadow-[0_0_30px_rgba(212,255,0,0.3)]"
+                onClick={() => navigate('/')}
+                className="mx-auto mb-6 h-24 w-24 cursor-pointer rounded-2xl object-contain shadow-[0_0_40px_rgba(212,255,0,0.4)] transition-transform hover:scale-110 active:scale-95"
               />
-              <h1 className="text-3xl font-bold tracking-tight text-white">Bon Retour</h1>
-              <p className="mt-2 text-gray-400">Entrez vos identifiants pour accéder à Fiafio</p>
+              <h1 className="text-4xl font-extrabold tracking-tight text-white">Bon Retour</h1>
+              <p className="mt-3 text-gray-400">Entrez vos identifiants pour accéder à Fiafio</p>
             </div>
 
             <div className="space-y-6">

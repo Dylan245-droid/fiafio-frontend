@@ -18,6 +18,7 @@ interface CheckoutSession {
   success_url: string | null;
   cancel_url: string | null;
   can_be_paid: boolean;
+  is_test: boolean;
 }
 
 export default function CheckoutPage() {
@@ -190,9 +191,18 @@ export default function CheckoutPage() {
   // Pending - show payment form
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-surface/50 p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-surface/50 p-6 shadow-xl relative overflow-hidden">
+        {/* Sandbox Indicator */}
+        {session.is_test && (
+          <div className="absolute top-0 left-0 right-0 bg-orange-500 py-1 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-black">
+              Mode Test — Aucun paiement réel
+            </p>
+          </div>
+        )}
+
         {/* Header */}
-        <div className="mb-6 text-center">
+        <div className={`mb-6 text-center ${session.is_test ? 'mt-4' : ''}`}>
           {session.merchant.logo ? (
             <img
               src={session.merchant.logo}

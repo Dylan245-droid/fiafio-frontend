@@ -1135,7 +1135,7 @@ export default function AgentDashboard() {
                 <div className={`w-1.5 h-1.5 rounded-full ${tx.direction === 'IN' ? 'bg-green-500' : 'bg-primary'} animate-pulse`} />
               </div>
 
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex-1">
                   <p className="text-sm font-bold text-white mb-1 group-hover:text-primary transition-colors truncate max-w-[150px] sm:max-w-none">
                     {tx.type}

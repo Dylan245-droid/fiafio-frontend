@@ -144,24 +144,26 @@ export default function AgentCommissionsPage() {
       {/* Monthly Breakdown Table */}
       {revenue?.monthlyData && revenue.monthlyData.length > 0 && (
         <div className="overflow-hidden rounded-3xl border border-white/5 bg-surface/30">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-black/20 text-gray-400">
-              <tr>
-                <th className="px-6 py-4 font-medium">Mois</th>
-                <th className="px-6 py-4 text-right font-medium">Transactions</th>
-                <th className="px-6 py-4 text-right font-medium">Commissions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {revenue.monthlyData.map((month) => (
-                <tr key={month.month} className="text-gray-300 transition hover:bg-white/5">
-                  <td className="px-6 py-4 font-medium text-white">{month.month}</td>
-                  <td className="px-6 py-4 text-right">{month.count}</td>
-                  <td className="px-6 py-4 text-right font-bold text-green-400">{formatCurrency(month.revenue)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-black/20 text-gray-400">
+                <tr>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Mois</th>
+                  <th className="px-6 py-4 text-right font-medium whitespace-nowrap">Transactions</th>
+                  <th className="px-6 py-4 text-right font-medium whitespace-nowrap">Commissions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {revenue.monthlyData.map((month) => (
+                  <tr key={month.month} className="text-gray-300 transition hover:bg-white/5">
+                    <td className="px-6 py-4 font-medium text-white whitespace-nowrap">{month.month}</td>
+                    <td className="px-6 py-4 text-right whitespace-nowrap">{month.count}</td>
+                    <td className="px-6 py-4 text-right font-bold text-green-400 whitespace-nowrap">{formatCurrency(month.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

@@ -1003,26 +1003,28 @@ export default function AdminConsole() {
             {/* Monthly Breakdown Table */}
             {revenue?.monthlyData && revenue.monthlyData.length > 0 && (
               <div className="overflow-hidden rounded-3xl border border-white/5 bg-surface/30">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-black/20 text-gray-400">
-                    <tr>
-                      <th className="px-6 py-4 font-medium">Mois</th>
-                      <th className="px-6 py-4 text-right font-medium">Transactions</th>
-                      <th className="px-6 py-4 text-right font-medium">Volume</th>
-                      <th className="px-6 py-4 text-right font-medium">Recettes</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {revenue.monthlyData.map((month) => (
-                      <tr key={month.month} className="text-gray-300 transition hover:bg-white/5">
-                        <td className="px-6 py-4 font-medium text-white">{month.month}</td>
-                        <td className="px-6 py-4 text-right">{month.count}</td>
-                        <td className="px-6 py-4 text-right">{formatCurrency(month.volume)}</td>
-                        <td className="px-6 py-4 text-right font-bold text-green-400">{formatCurrency(month.revenue)}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-black/20 text-gray-400">
+                      <tr>
+                        <th className="px-6 py-4 font-medium whitespace-nowrap">Mois</th>
+                        <th className="px-6 py-4 text-right font-medium whitespace-nowrap">Transactions</th>
+                        <th className="px-6 py-4 text-right font-medium whitespace-nowrap">Volume</th>
+                        <th className="px-6 py-4 text-right font-medium whitespace-nowrap">Recettes</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {revenue.monthlyData.map((month) => (
+                        <tr key={month.month} className="text-gray-300 transition hover:bg-white/5">
+                          <td className="px-6 py-4 font-medium text-white whitespace-nowrap">{month.month}</td>
+                          <td className="px-6 py-4 text-right whitespace-nowrap">{month.count}</td>
+                          <td className="px-6 py-4 text-right whitespace-nowrap">{formatCurrency(month.volume)}</td>
+                          <td className="px-6 py-4 text-right font-bold text-green-400 whitespace-nowrap">{formatCurrency(month.revenue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
@@ -1088,30 +1090,30 @@ export default function AdminConsole() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-black/20 text-gray-400">
                     <tr>
-                      <th className="px-6 py-4 font-medium">Horodatage</th>
-                      <th className="px-6 py-4 font-medium">Compte</th>
-                      <th className="px-6 py-4 font-medium">Type</th>
-                      <th className="px-6 py-4 text-right font-medium">Montant</th>
+                      <th className="px-6 py-4 font-medium whitespace-nowrap">Horodatage</th>
+                      <th className="px-6 py-4 font-medium whitespace-nowrap">Compte</th>
+                      <th className="px-6 py-4 font-medium whitespace-nowrap">Type</th>
+                      <th className="px-6 py-4 text-right font-medium whitespace-nowrap">Montant</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {filteredLedger.map((entry) => (
                       <tr key={entry.id} className="text-gray-300 transition hover:bg-white/5">
-                        <td className="px-6 py-4 text-gray-500">
+                        <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
                           {new Date(entry.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}, {new Date(entry.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <span className="font-medium text-white">{entry.userName}</span>
                           <span className="block text-xs text-gray-500">{entry.accountType}</span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`rounded-full px-2 py-1 text-xs font-bold ${
                             entry.entryType === 'DEBIT' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'
                           }`}>
                             {entry.entryType === 'DEBIT' ? 'DÉBIT' : 'CRÉDIT'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right font-mono font-medium">
+                        <td className="px-6 py-4 text-right font-mono font-medium whitespace-nowrap">
                           {formatCurrency(entry.amount)}
                         </td>
                       </tr>
@@ -1136,32 +1138,32 @@ export default function AdminConsole() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-black/20 text-gray-400">
                     <tr>
-                      <th className="px-6 py-4 font-medium">Date</th>
-                      <th className="px-6 py-4 font-medium">Écriture</th>
-                      <th className="px-6 py-4 font-medium">Compte</th>
-                      <th className="px-6 py-4 font-medium">Libellé</th>
-                      <th className="px-6 py-4 text-right font-medium">Débit</th>
-                      <th className="px-6 py-4 text-right font-medium">Crédit</th>
+                      <th className="px-6 py-4 font-medium whitespace-nowrap">Date</th>
+                      <th className="px-6 py-4 font-medium whitespace-nowrap">Écriture</th>
+                      <th className="px-6 py-4 font-medium whitespace-nowrap">Compte</th>
+                      <th className="px-6 py-4 font-medium whitespace-nowrap">Libellé</th>
+                      <th className="px-6 py-4 text-right font-medium whitespace-nowrap">Débit</th>
+                      <th className="px-6 py-4 text-right font-medium whitespace-nowrap">Crédit</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {ohadaLedger.map((line) => (
                       <tr key={line.id} className="text-gray-300 transition hover:bg-white/5">
-                        <td className="px-6 py-4 text-gray-500">{new Date(line.createdAt).toLocaleDateString('fr-FR')}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-gray-500 whitespace-nowrap">{new Date(line.createdAt).toLocaleDateString('fr-FR')}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                            <span className="block text-xs font-mono text-primary">{line.entry?.entryNumber}</span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <span className="font-bold text-white">{line.account?.code}</span>
                           <span className="block text-xs text-gray-500">{line.account?.label}</span>
                         </td>
-                        <td className="px-6 py-4 text-gray-400 italic">
+                        <td className="px-6 py-4 text-gray-400 italic whitespace-nowrap">
                           {line.label || line.entry?.description}
                         </td>
-                        <td className="px-6 py-4 text-right font-mono text-red-400">
+                        <td className="px-6 py-4 text-right font-mono text-red-400 whitespace-nowrap">
                           {line.debit > 0 ? formatCurrency(line.debit) : '-'}
                         </td>
-                        <td className="px-6 py-4 text-right font-mono text-green-400">
+                        <td className="px-6 py-4 text-right font-mono text-green-400 whitespace-nowrap">
                           {line.credit > 0 ? formatCurrency(line.credit) : '-'}
                         </td>
                       </tr>
@@ -1366,41 +1368,41 @@ export default function AdminConsole() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-white/5 bg-black/20">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-white/10 bg-white/5 text-xs font-bold uppercase tracking-wider text-gray-500">
-                      <th className="px-6 py-4">Compte</th>
-                      <th className="px-6 py-4">Intitulé</th>
-                      <th className="px-6 py-4">Utilisation / Description</th>
-                      <th className="px-6 py-4">Type</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-sm text-gray-300">
-                    {[
-                      { code: '52100', name: 'Banque', desc: 'Compte de trésorerie principal (Cash-in/Cash-out)', type: 'Actif' },
-                      { code: '70610', name: 'Revenus Transferts P2P', desc: 'Commissions sur les transferts entre utilisateurs', type: 'Produit' },
-                      { code: '70620', name: 'Revenus Retraits', desc: 'Commissions sur les retraits (Cash-out)', type: 'Produit' },
-                      { code: '70630', name: 'Revenus Paiements Marchands', desc: 'Commissions sur les achats chez les marchands', type: 'Produit' },
-                      { code: '70640', name: 'Revenus Rechargements', desc: 'Commissions sur les recharges de float', type: 'Produit' },
-                      { code: '70650', name: 'Revenus Pénalités', desc: 'Frais d\'annulation et pénalités de transaction', type: 'Produit' },
-                    ].map((acc) => (
-                      <tr key={acc.code} className="hover:bg-white/[0.02]">
-                        <td className="px-6 py-4 font-mono font-bold text-primary">{acc.code}</td>
-                        <td className="px-6 py-4 text-white font-medium">{acc.name}</td>
-                        <td className="px-6 py-4 text-xs italic">{acc.desc}</td>
-                        <td className="px-6 py-4">
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                            acc.type === 'Actif' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
-                          }`}>
-                            {acc.type}
-                          </span>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-white/10 bg-white/5 text-xs font-bold uppercase tracking-wider text-gray-500">
+                        <th className="px-6 py-4 whitespace-nowrap">Compte</th>
+                        <th className="px-6 py-4 whitespace-nowrap">Intitulé</th>
+                        <th className="px-6 py-4 whitespace-nowrap">Utilisation / Description</th>
+                        <th className="px-6 py-4 whitespace-nowrap">Type</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-sm text-gray-300">
+                      {[
+                        { code: '52100', name: 'Banque', desc: 'Compte de trésorerie principal (Cash-in/Cash-out)', type: 'Actif' },
+                        { code: '70610', name: 'Revenus Transferts P2P', desc: 'Commissions sur les transferts entre utilisateurs', type: 'Produit' },
+                        { code: '70620', name: 'Revenus Retraits', desc: 'Commissions sur les retraits (Cash-out)', type: 'Produit' },
+                        { code: '70630', name: 'Revenus Paiements Marchands', desc: 'Commissions sur les achats chez les marchands', type: 'Produit' },
+                        { code: '70640', name: 'Revenus Rechargements', desc: 'Commissions sur les recharges de float', type: 'Produit' },
+                        { code: '70650', name: 'Revenus Pénalités', desc: 'Frais d\'annulation et pénalités de transaction', type: 'Produit' },
+                      ].map((acc) => (
+                        <tr key={acc.code} className="hover:bg-white/[0.02]">
+                          <td className="px-6 py-4 font-mono font-bold text-primary whitespace-nowrap">{acc.code}</td>
+                          <td className="px-6 py-4 text-white font-medium whitespace-nowrap">{acc.name}</td>
+                          <td className="px-6 py-4 text-xs italic whitespace-nowrap">{acc.desc}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                              acc.type === 'Actif' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
+                            }`}>
+                              {acc.type}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
               <div className="mt-8 p-6 rounded-2xl bg-yellow-500/10 border border-yellow-500/20">
                 <h4 className="flex items-center gap-2 font-bold text-yellow-500 mb-2">

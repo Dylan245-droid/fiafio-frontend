@@ -157,7 +157,7 @@ export default function LandingPage() {
             )}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-2 text-gray-400 hover:text-white"
+              className="lg:hidden p-2 text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-all"
             >
               {isMenuOpen ? <X /> : <Menu />}
             </button>

@@ -10,6 +10,12 @@
   --font-sans: "Stack Sans Notch", system-ui, sans-serif;
   
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-slide-left: slide-left 0.3s ease-out;
+}
+
+@keyframes slide-left {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 body {

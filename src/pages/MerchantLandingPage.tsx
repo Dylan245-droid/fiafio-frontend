@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Zap, Shield, Globe, ArrowRight, Check,
-  Code, Wallet, BarChart3, Send, CreditCard, BookOpen
+  Code, Wallet, BarChart3, Send, CreditCard, BookOpen, Menu, X
 } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
 import FloatingShapes from '../components/FloatingShapes';
@@ -11,6 +11,7 @@ import ThemeToggle from '../components/ThemeToggle';
 export default function MerchantLandingPage() {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const features = [
     {
@@ -76,10 +77,10 @@ export default function MerchantLandingPage() {
       <FloatingShapes />
 
       {/* Header */}
-      <header className="relative z-10">
+      <header className="relative z-50">
         <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer" onClick={() => navigate('/')}>
               <img
                 src="/fiafio_logo.png"
                 alt="Fiafio"
@@ -89,22 +90,23 @@ export default function MerchantLandingPage() {
             </div>
             <div className="flex items-center space-x-2 sm:space-x-3">
               <ThemeToggle />
+              
               <button
                 onClick={() => navigate('/')}
-                className="hidden md:flex items-center gap-2 px-4 py-2.5 text-gray-300 hover:text-primary transition-colors text-sm font-medium"
+                className="hidden lg:flex items-center gap-2 px-4 py-2.5 text-gray-300 hover:text-primary transition-colors text-sm font-medium"
               >
                 Espace Particuliers
               </button>
               <button
                 onClick={() => navigate('/developers')}
-                className="hidden md:flex items-center gap-2 px-4 py-2.5 text-gray-300 hover:text-primary transition-colors"
+                className="hidden lg:flex items-center gap-2 px-4 py-2.5 text-gray-300 hover:text-primary transition-colors"
               >
                 <BookOpen className="w-4 h-4" />
                 Docs API
               </button>
               <button
                 onClick={() => navigate('/login')}
-                className="hidden sm:block px-4 py-2 sm:px-5 sm:py-2.5 text-gray-300 hover:text-white transition-colors text-sm sm:text-base"
+                className="hidden lg:block px-4 py-2 sm:px-5 sm:py-2.5 text-gray-300 hover:text-white transition-colors text-sm sm:text-base"
               >
                 Connexion
               </button>
@@ -115,9 +117,81 @@ export default function MerchantLandingPage() {
                 <span className="sm:hidden">Créer</span>
                 <span className="hidden sm:inline">Créer un compte</span>
               </button>
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex lg:hidden items-center justify-center p-2 text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-all shadow-lg shadow-primary/5"
+              >
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
             </div>
           </div>
         </nav>
+
+        {/* Mobile Navigation Drawer */}
+        {isMenuOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setIsMenuOpen(false)}
+            />
+            
+            {/* Menu Content */}
+            <div className="absolute right-0 top-0 bottom-0 w-64 bg-surface border-l border-white/10 p-6 flex flex-col shadow-2xl animate-slide-left">
+              <div className="flex items-center justify-between mb-8">
+                <span className="text-xl font-bold">Menu</span>
+                <button
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex flex-col space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 sm:hidden mb-2">
+                  <span className="text-sm text-gray-400">Thème</span>
+                  <ThemeToggle />
+                </div>
+                
+                <button
+                  onClick={() => { navigate('/'); setIsMenuOpen(false); }}
+                  className="flex items-center gap-3 p-3 text-gray-300 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                >
+                  <Globe className="w-5 h-5" />
+                  Espace Particuliers
+                </button>
+                <button
+                  onClick={() => { navigate('/developers'); setIsMenuOpen(false); }}
+                  className="flex items-center gap-3 p-3 text-gray-300 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                >
+                  <BookOpen className="w-5 h-5" />
+                  Docs API
+                </button>
+                <div className="h-px bg-white/5 my-2" />
+                <button
+                  onClick={() => { navigate('/login'); setIsMenuOpen(false); }}
+                  className="flex items-center gap-3 p-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                >
+                  Connexion
+                </button>
+                <button
+                  onClick={() => { navigate('/register'); setIsMenuOpen(false); }}
+                  className="flex items-center gap-3 p-3 bg-primary text-black font-bold rounded-xl transition-all"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                  Créer un compte
+                </button>
+              </div>
+
+              <div className="mt-auto py-6 text-center">
+                <p className="text-xs text-gray-600">© {new Date().getFullYear()} Fiafio</p>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
@@ -147,19 +221,19 @@ export default function MerchantLandingPage() {
           </ScrollReveal>
 
           <ScrollReveal animation="fade-up" delay={300}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <button
                 onClick={() => navigate('/register')}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                className="group px-8 py-4 bg-primary text-black rounded-2xl font-bold text-lg transition-all hover:scale-105 shadow-lg shadow-primary/30 flex items-center"
+                className="w-full sm:w-auto group px-6 sm:px-8 py-3.5 sm:py-4 bg-primary text-black rounded-2xl font-bold text-base sm:text-lg transition-all hover:scale-105 shadow-lg shadow-primary/30 flex items-center justify-center"
               >
                 Commencer maintenant
                 <ArrowRight className={`ml-2 w-5 h-5 transition-transform ${isHovered ? 'translate-x-1' : ''}`} />
               </button>
               <button
                 onClick={() => navigate('/login')}
-                className="px-8 py-4 bg-surface border border-white/10 hover:border-primary/30 text-white rounded-2xl font-semibold text-lg transition-all"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-surface border border-white/10 hover:border-primary/30 text-white rounded-2xl font-semibold text-base sm:text-lg transition-all"
               >
                 J'ai déjà un compte
               </button>
@@ -189,18 +263,7 @@ export default function MerchantLandingPage() {
       {/* Features Section */}
       <section className="relative z-10 py-12 bg-surface/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ScrollReveal animation="fade-up">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-white mb-3">
-                Pourquoi choisir Fiafio ?
-              </h2>
-              <p className="text-gray-400 max-w-lg mx-auto">
-                Une solution complète pour vos transactions financières
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {features.map((feature, index) => (
               <ScrollReveal key={feature.title} animation="fade-up" delay={index * 80}>
                 <div className="group p-5 bg-surface/50 border border-white/5 rounded-2xl hover:border-primary/20 transition-all h-full">
@@ -208,7 +271,7 @@ export default function MerchantLandingPage() {
                     <feature.icon className="w-5 h-5 text-primary" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-1">{feature.title}</h3>
-                  <p className="text-gray-500 text-sm">{feature.description}</p>
+                  <p className="text-gray-500 text-sm leading-relaxed">{feature.description}</p>
                 </div>
               </ScrollReveal>
             ))}
@@ -233,7 +296,7 @@ export default function MerchantLandingPage() {
             </div>
           </ScrollReveal>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {[
               {
                 emoji: '💸',
@@ -260,7 +323,7 @@ export default function MerchantLandingPage() {
                 <div className="p-5 bg-surface/50 border border-white/5 rounded-2xl hover:border-blue-500/30 transition-all h-full">
                   <span className="text-3xl mb-3 block">{item.emoji}</span>
                   <h3 className="text-lg font-semibold text-white mb-1">{item.title}</h3>
-                  <p className="text-gray-500 text-sm">{item.desc}</p>
+                  <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
                 </div>
               </ScrollReveal>
             ))}
@@ -343,7 +406,7 @@ export default function MerchantLandingPage() {
             </div>
           </ScrollReveal>
 
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <ScrollReveal animation="slide-left">
               <div className="rounded-2xl bg-black/50 border border-white/10 overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-3 bg-white/5 border-b border-white/10">
@@ -354,7 +417,7 @@ export default function MerchantLandingPage() {
                   </div>
                   <span className="text-xs text-gray-500 ml-2 font-mono">checkout.js</span>
                 </div>
-                <pre className="p-5 overflow-x-auto text-sm">
+                <pre className="p-4 sm:p-5 overflow-x-auto text-[11px] sm:text-xs md:text-sm">
                   <code className="text-gray-300 font-mono">{`// Créer une session de paiement
 const response = await fetch(
   'https://api.fiafio.com/api/v1/checkout/sessions',

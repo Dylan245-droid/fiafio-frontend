@@ -133,19 +133,20 @@ export default function RegisterPage() {
         )}
 
         {/* Header */}
-        <div className="mb-8 text-center">
+        <div className="mb-10 text-center">
           <img 
             src="/fiafio_logo.png" 
             alt="Fiafio" 
-            className="mx-auto mb-4 h-20 w-20 rounded-2xl object-contain shadow-[0_0_30px_rgba(212,255,0,0.3)]"
+            onClick={() => navigate('/')}
+            className="mx-auto mb-6 h-24 w-24 cursor-pointer rounded-2xl object-contain shadow-[0_0_40px_rgba(212,255,0,0.4)] transition-transform hover:scale-110 active:scale-95"
           />
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-4xl font-extrabold tracking-tight text-white leading-tight">
             {step === 'TYPE' && 'Créer un Compte'}
             {step === 'INFO' && 'Vos Informations'}
             {step === 'ACTIVATION_SENT' && 'Vérifiez votre email'}
             {step === 'SUCCESS' && 'Bienvenue !'}
           </h1>
-          <p className="mt-2 text-gray-400">
+          <p className="mt-3 text-gray-400 text-lg">
             {step === 'TYPE' && 'Choisissez votre type de compte'}
             {step === 'INFO' && 'Remplissez vos informations personnelles'}
             {step === 'ACTIVATION_SENT' && 'Un email d\'activation vous a été envoyé'}

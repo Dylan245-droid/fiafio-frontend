@@ -30,6 +30,9 @@ interface MerchantData {
   contactPhone?: string;
   websiteUrl?: string;
   kycStatus: string;
+  testPublicKey?: string;
+  testSecretKey?: string;
+  testWebhookSecret?: string;
 }
 
 interface Transaction {
@@ -73,6 +76,13 @@ export default function MerchantPortal() {
   const [txMeta, setTxMeta] = useState<any>(null);
   const [txSearch, setTxSearch] = useState('');
   const [txStatus, setTxStatus] = useState('all');
+  const [isSandbox, setIsSandbox] = useState(() => {
+    return localStorage.getItem('fiafio_sandbox_mode') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('fiafio_sandbox_mode', isSandbox.toString());
+  }, [isSandbox]);
   
   // Settings state
   const [settingsForm, setSettingsForm] = useState({
@@ -90,17 +100,35 @@ export default function MerchantPortal() {
   const handleRefresh = () => {
     refetchAccounts();
     refetchRecentTx();
+    if (isSandbox) fetchMerchantBalance();
   };
+
+  const [sandboxBalance, setSandboxBalance] = useState({ balance: 0, currency: 'XAF' });
+
+  const fetchMerchantBalance = async () => {
+    try {
+      const res = await api.get(`/merchant/balance?mode=${isSandbox ? 'test' : 'live'}`);
+      if (res.data) {
+        setSandboxBalance({ balance: res.data.balance, currency: res.data.currency });
+      }
+    } catch (err) {
+      console.error('Error fetching merchant balance:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isSandbox) {
+      fetchMerchantBalance();
+    }
+  }, [isSandbox]);
 
   useEffect(() => {
     fetchMerchantData();
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'TRANSACTIONS') {
-      fetchTransactions();
-    }
-  }, [activeTab, txPage, txStatus]);
+    fetchTransactions();
+  }, [activeTab, txPage, txStatus, isSandbox]);
 
   const fetchMerchantData = async () => {
     setLoading(true);
@@ -126,10 +154,14 @@ export default function MerchantPortal() {
 
   const fetchTransactions = async () => {
     try {
-      const params = new URLSearchParams({ page: txPage.toString(), limit: '10' });
+      const params = new URLSearchParams({ 
+        page: txPage.toString(), 
+        limit: '10',
+        mode: isSandbox ? 'test' : 'live'
+      });
       if (txStatus !== 'all') params.append('status', txStatus.toUpperCase());
       
-      const res = await api.get(`/accounts/history?${params}`);
+      const res = await api.get(`/merchant/transactions?${params}`);
       if (res.data) {
         setTransactions(res.data.transactions || []);
         // Set pagination meta if available
@@ -156,7 +188,7 @@ export default function MerchantPortal() {
     
     setRotating(true);
     try {
-      const res = await api.post('/merchant/rotate-keys');
+      const res = await api.post('/merchant/rotate-keys', { mode: isSandbox ? 'test' : 'live' });
       if (res.data) {
         setMerchant(prev => prev ? { ...prev, ...res.data } : null);
       }
@@ -228,7 +260,20 @@ export default function MerchantPortal() {
               </h1>
             </div>
           </div>
-          <div className="flex items-center gap-3 self-end md:self-auto">
+          <div className="flex flex-wrap items-center gap-3 self-end md:self-auto">
+            {/* Sandbox Toggle */}
+            <button
+              onClick={() => setIsSandbox(!isSandbox)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                isSandbox 
+                  ? 'bg-orange-500/10 border-orange-500/50 text-orange-500 shadow-lg shadow-orange-500/10' 
+                  : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${isSandbox ? 'bg-orange-500 animate-pulse' : 'bg-gray-600'}`} />
+              {isSandbox ? 'Sandbox Mode' : 'Live Mode'}
+            </button>
+
             <ThemeToggle />
             <div className="h-10 w-[1px] bg-white/10 mx-2 hidden md:block" />
             <button
@@ -297,10 +342,13 @@ export default function MerchantPortal() {
                 </div>
               </div>
               <div className="mt-4 text-5xl font-black tracking-tighter truncate">
-                {formatCurrency(
-                  (accounts.find(a => a.type === 'WALLET')?.balance || 0) +
-                  (accounts.find(a => a.type === 'MERCHANT')?.balance || 0)
-                )}
+                {isSandbox 
+                  ? formatCurrency(sandboxBalance.balance, sandboxBalance.currency)
+                  : formatCurrency(
+                      (accounts.find(a => a.type === 'WALLET')?.balance || 0) +
+                      (accounts.find(a => a.type === 'MERCHANT')?.balance || 0)
+                    )
+                }
               </div>
               
               {/* Account breakdown */}
@@ -308,13 +356,16 @@ export default function MerchantPortal() {
                 <div className="rounded-2xl bg-black/10 p-4 border border-white/10 backdrop-blur-sm">
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Personal Wallet</p>
                   <p className="text-xl font-bold">
-                    {new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'WALLET')?.balance || 0)} FCFA
+                    {isSandbox ? '---' : new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'WALLET')?.balance || 0)} FCFA
                   </p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-4 border border-white/10 backdrop-blur-sm">
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Business Revenue</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Business Revenue {isSandbox && '(TEST)'}</p>
                   <p className="text-xl font-bold">
-                    {new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'MERCHANT')?.balance || 0)} FCFA
+                    {isSandbox 
+                      ? new Intl.NumberFormat('fr-FR').format(sandboxBalance.balance)
+                      : new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'MERCHANT')?.balance || 0)
+                    } FCFA
                   </p>
                 </div>
               </div>
@@ -396,11 +447,11 @@ export default function MerchantPortal() {
           </div>
 
           <div className="bg-surface border border-white/5 rounded-2xl p-5">
-            <h3 className="font-semibold text-white mb-4">Informations rapides</h3>
+            <h3 className="font-semibold text-white mb-4">Informations rapides {isSandbox && <span className="text-orange-500 text-[10px] ml-2">(SANDBOX)</span>}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div className="flex justify-between py-2 border-b border-white/5">
                 <span className="text-gray-500">Clé publique</span>
-                <span className="text-white font-mono text-xs">{merchant?.publicKey?.substring(0, 20)}...</span>
+                <span className="text-white font-mono text-xs">{(isSandbox ? merchant?.testPublicKey : merchant?.publicKey)?.substring(0, 20)}...</span>
               </div>
               <div className="flex justify-between py-2 border-b border-white/5">
                 <span className="text-gray-500">Devise par défaut</span>
@@ -493,16 +544,16 @@ export default function MerchantPortal() {
           <div className="bg-surface border border-white/5 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="font-medium text-white">Clé Publique</h3>
+                <h3 className="font-medium text-white">Clé Publique ({isSandbox ? 'SANDBOX' : 'LIVE'})</h3>
                 <p className="text-gray-600 text-xs">Utilisable côté client</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <code className="flex-1 bg-background px-4 py-3 rounded-xl text-primary font-mono text-sm overflow-x-auto">
-                {merchant?.publicKey}
+                {isSandbox ? merchant?.testPublicKey : merchant?.publicKey}
               </code>
               <button
-                onClick={() => handleCopy(merchant?.publicKey || '', 'public')}
+                onClick={() => handleCopy((isSandbox ? merchant?.testPublicKey : merchant?.publicKey) || '', 'public')}
                 className="p-3 bg-background rounded-xl text-gray-400 hover:text-primary transition-colors"
               >
                 {copiedKey === 'public' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -514,13 +565,15 @@ export default function MerchantPortal() {
           <div className="bg-surface border border-white/5 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="font-medium text-white">Clé Secrète</h3>
+                <h3 className="font-medium text-white">Clé Secrète ({isSandbox ? 'SANDBOX' : 'LIVE'})</h3>
                 <p className="text-gray-600 text-xs">À garder côté serveur uniquement</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <code className="flex-1 bg-background px-4 py-3 rounded-xl text-primary font-mono text-sm overflow-x-auto">
-                {showSecret ? merchant?.secretKey : maskKey(merchant?.secretKey || '')}
+                {showSecret 
+                  ? (isSandbox ? merchant?.testSecretKey : merchant?.secretKey) 
+                  : maskKey((isSandbox ? merchant?.testSecretKey : merchant?.secretKey) || '')}
               </code>
               <button
                 onClick={() => setShowSecret(!showSecret)}
@@ -529,7 +582,7 @@ export default function MerchantPortal() {
                 {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
               <button
-                onClick={() => handleCopy(merchant?.secretKey || '', 'secret')}
+                onClick={() => handleCopy((isSandbox ? merchant?.testSecretKey : merchant?.secretKey) || '', 'secret')}
                 className="p-3 bg-background rounded-xl text-gray-400 hover:text-primary transition-colors"
               >
                 {copiedKey === 'secret' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -599,7 +652,7 @@ export default function MerchantPortal() {
                     onClick={() => setSelectedTxRef(tx.reference)}
                     className="px-5 py-4 hover:bg-white/[0.02] transition-colors cursor-pointer"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
                           tx.direction === 'IN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
@@ -673,13 +726,15 @@ export default function MerchantPortal() {
           <div className="bg-surface border border-white/5 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="font-medium text-white">Secret de signature</h3>
+                <h3 className="font-medium text-white">Secret de signature ({isSandbox ? 'SANDBOX' : 'LIVE'})</h3>
                 <p className="text-gray-600 text-xs">Utilisez ce secret pour vérifier les signatures</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <code className="flex-1 bg-background px-4 py-3 rounded-xl text-primary font-mono text-sm overflow-x-auto">
-                {showWebhookSecret ? merchant?.webhookSecret : maskKey(merchant?.webhookSecret || '')}
+                {showWebhookSecret 
+                  ? (isSandbox ? merchant?.testWebhookSecret : merchant?.webhookSecret) 
+                  : maskKey((isSandbox ? merchant?.testWebhookSecret : merchant?.webhookSecret) || '')}
               </code>
               <button
                 onClick={() => setShowWebhookSecret(!showWebhookSecret)}
@@ -688,7 +743,7 @@ export default function MerchantPortal() {
                 {showWebhookSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
               <button
-                onClick={() => handleCopy(merchant?.webhookSecret || '', 'webhook')}
+                onClick={() => handleCopy((isSandbox ? merchant?.testWebhookSecret : merchant?.webhookSecret) || '', 'webhook')}
                 className="p-3 bg-background rounded-xl text-gray-400 hover:text-primary transition-colors"
               >
                 {copiedKey === 'webhook' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}

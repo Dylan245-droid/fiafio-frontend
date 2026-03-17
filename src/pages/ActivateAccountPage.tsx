@@ -48,7 +48,13 @@ export default function ActivateAccountPage() {
       {/* Background Glow */}
       <div className="absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-primary/20 blur-[100px]" />
 
-      <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-surface/30 p-8 shadow-2xl backdrop-blur-xl text-center">
+      <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-surface/30 p-10 shadow-2xl backdrop-blur-xl text-center">
+        <img 
+          src="/fiafio_logo.png" 
+          alt="Fiafio" 
+          onClick={() => navigate('/')}
+          className="mx-auto mb-10 h-24 w-24 cursor-pointer rounded-2xl object-contain shadow-[0_0_40px_rgba(212,255,0,0.4)] transition-transform hover:scale-110 active:scale-95"
+        />
         {status === 'LOADING' && (
           <>
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/20">

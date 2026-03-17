@@ -234,6 +234,7 @@ echo json_encode(['received' => true]);`,
 # Body:
 {
   "event": "checkout.completed",
+  "livemode": false,
   "data": {
     "sessionId": "cs_abc123xyz",
     "amount": 5000,
@@ -1398,19 +1399,23 @@ Content-Type: application/json`}
                   <ul className="text-green-300 space-y-2 text-sm">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 mt-0.5 text-green-400" />
-                      Les paiements checkout sont automatiquement marqués comme réussis
+                      <strong>Simulateur Checkout :</strong> Les paiements en mode test affichent une bannière orange et peuvent être simulés instantanément.
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 mt-0.5 text-green-400" />
-                      Aucun argent réel n'est transféré
+                      <strong>Pas de mouvement de fonds :</strong> Aucun argent réel n'est débité des comptes clients ou crédité sur votre compte live.
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 mt-0.5 text-green-400" />
-                      Les webhooks fonctionnent normalement
+                      <strong>Webhooks :</strong> Les webhooks sont envoyés normalement mais incluent un champ <code>"livemode": false</code> à la racine du JSON.
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 mt-0.5 text-green-400" />
-                      Les transactions test sont visibles dans le dashboard (badge "Test")
+                      <strong>Clés séparées :</strong> Les clés <code>sk_test_</code> et <code>pk_test_</code> sont totalement isolées de vos clés live.
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 mt-0.5 text-green-400" />
+                      <strong>Mode Persistant :</strong> Une fois activé dans votre dashboard, le mode sandbox reste actif même après un rechargement de page.
                     </li>
                   </ul>
                 </div>
