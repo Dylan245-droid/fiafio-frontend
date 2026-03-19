@@ -24,6 +24,7 @@ export default function PaymentRequestsCard({ onRequestHandled }: Props) {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const fetchRequests = async () => {
     try {
@@ -71,6 +72,8 @@ export default function PaymentRequestsCard({ onRequestHandled }: Props) {
     try {
       await api.post(`/payment-requests/${requestId}/approve`);
       setRequests(requests.filter(r => r.id !== requestId));
+      setSuccessMessage('Paiement effectué avec succès !');
+      setTimeout(() => setSuccessMessage(null), 5000);
       onRequestHandled?.();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erreur lors du paiement');
@@ -86,6 +89,8 @@ export default function PaymentRequestsCard({ onRequestHandled }: Props) {
     try {
       await api.post(`/payment-requests/${requestId}/reject`);
       setRequests(requests.filter(r => r.id !== requestId));
+      setSuccessMessage('Demande de paiement refusée.');
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erreur lors du rejet');
     } finally {
@@ -104,12 +109,12 @@ export default function PaymentRequestsCard({ onRequestHandled }: Props) {
     );
   }
 
-  if (requests.length === 0) {
-    return null; // Don't show the card if no pending requests
+  if (requests.length === 0 && !successMessage) {
+    return null; // Don't show the card if no pending requests and no success message
   }
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20 p-6">
+    <div className="mb-6 rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20 p-6 shadow-xl shadow-orange-500/5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <CreditCard className="h-5 w-5 text-orange-400" />
@@ -130,6 +135,13 @@ export default function PaymentRequestsCard({ onRequestHandled }: Props) {
         <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-3 flex items-center gap-2 text-red-400 text-sm">
           <AlertTriangle className="h-4 w-4" />
           {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-4 rounded-xl bg-green-500/10 border border-green-500/20 p-3 flex items-center gap-2 text-green-400 text-sm animate-in fade-in slide-in-from-top-1">
+          <Check className="h-4 w-4" />
+          {successMessage}
         </div>
       )}
 

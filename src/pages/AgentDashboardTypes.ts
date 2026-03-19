@@ -17,6 +17,7 @@ export interface AgentStats {
     daysUntilNextLevel: number;
     transactionsUntilNextLevel: number;
     nextLevel: string | null;
+    nextLevelLimit: number | null;
     isStagnating: boolean;
     stagnationReason: string | null;
   };

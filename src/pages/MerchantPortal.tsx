@@ -325,8 +325,8 @@ export default function MerchantPortal() {
                 {isSandbox 
                   ? formatCurrency(sandboxBalance.balance, sandboxBalance.currency)
                   : formatCurrency(
-                      (accounts.find(a => a.type === 'WALLET')?.balance || 0) +
-                      (accounts.find(a => a.type === 'MERCHANT')?.balance || 0)
+                      Number(accounts.find(a => a.type === 'WALLET')?.balance || 0) +
+                      Number(accounts.find(a => a.type === 'MERCHANT')?.balance || 0)
                     )
                 }
               </div>
@@ -336,15 +336,15 @@ export default function MerchantPortal() {
                 <div className="rounded-2xl bg-black/10 p-4 border border-white/10 backdrop-blur-sm">
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Personal Wallet</p>
                   <p className="text-xl font-bold">
-                    {isSandbox ? '---' : new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'WALLET')?.balance || 0)} FCFA
+                    {isSandbox ? '---' : new Intl.NumberFormat('fr-FR').format(Number(accounts.find(a => a.type === 'WALLET')?.balance || 0))} FCFA
                   </p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-4 border border-white/10 backdrop-blur-sm">
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Business Revenue {isSandbox && '(TEST)'}</p>
                   <p className="text-xl font-bold">
                     {isSandbox 
-                      ? new Intl.NumberFormat('fr-FR').format(sandboxBalance.balance)
-                      : new Intl.NumberFormat('fr-FR').format(accounts.find(a => a.type === 'MERCHANT')?.balance || 0)
+                      ? new Intl.NumberFormat('fr-FR').format(Number(sandboxBalance.balance))
+                      : new Intl.NumberFormat('fr-FR').format(Number(accounts.find(a => a.type === 'MERCHANT')?.balance || 0))
                     } FCFA
                   </p>
                 </div>
@@ -361,11 +361,15 @@ export default function MerchantPortal() {
                     <span className="text-[10px] font-black uppercase tracking-widest">Envoyer</span>
                   </button>
                   <button 
-                    onClick={() => navigate('/deposit')}
-                    className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/10 py-4 font-semibold transition hover:bg-white/20"
+                    disabled
+                    title="Pour les recharges, rapprochez-vous d'un agent"
+                    className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/5 py-4 font-semibold opacity-50 cursor-not-allowed transition-all group relative border border-white/5"
                   >
                     <ArrowDownLeft className="h-5 w-5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Recharger</span>
+                    <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-black/90 text-[10px] text-purple-400 p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 border border-purple-500/20 pointer-events-none shadow-2xl font-black uppercase tracking-widest">
+                      Pour les recharges, rapprochez-vous d'un agent
+                    </div>
                   </button>
                   <button 
                     onClick={() => merchant?.kycStatus === 'VERIFIED' && navigate('/withdraw')}

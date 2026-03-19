@@ -24,7 +24,7 @@ export default function PayPage() {
       const res = await api.get(`/v1/checkout/sessions/${sessionId}`);
       setSession(res.data);
     } catch (err: any) {
-      setError('Invalid or expired payment link.');
+      setError('Lien de paiement invalide ou expiré.');
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ export default function PayPage() {
       });
       setSuccess(res.data);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Payment failed');
+      setError(err.response?.data?.error || 'Échec du paiement');
     } finally {
       setProcessing(false);
     }
@@ -63,16 +63,16 @@ export default function PayPage() {
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-500/20 text-green-500">
             <CheckCircle className="h-10 w-10" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Payment Successful!</h1>
-          <p className="mt-2 text-gray-400">Your transaction has been confirmed.</p>
+          <h1 className="text-2xl font-bold text-white">Paiement Réussi !</h1>
+          <p className="mt-2 text-gray-400">Votre transaction a été confirmée.</p>
           
           <div className="mt-6 rounded-xl bg-black/40 p-4">
-            <p className="text-sm text-gray-500">Transaction ID</p>
+            <p className="text-sm text-gray-500">ID de Transaction</p>
             <p className="font-mono text-white">{success.transactionId}</p>
           </div>
 
           <div className="mt-6">
-            <p className="text-sm text-gray-500">Redirecting...</p>
+            <p className="text-sm text-gray-500">Redirection en cours...</p>
           </div>
         </div>
       </div>
@@ -96,14 +96,14 @@ export default function PayPage() {
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-[0_0_20px_rgba(212,255,0,0.3)]">
                     <span className="text-xl font-bold text-background">F</span>
                 </div>
-                <h2 className="text-lg font-medium text-gray-300">Pay to</h2>
+                <h2 className="text-lg font-medium text-gray-300">Payer à</h2>
                 <h1 className="text-2xl font-bold text-white">{session.businessName}</h1>
             </div>
 
             <div className="p-8">
                 {/* Amount Display */}
                 <div className="mb-8 text-center">
-                    <p className="text-sm text-gray-400">Total Amount</p>
+                    <p className="text-sm text-gray-400">Montant Total</p>
                     <div className="flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-black tracking-tight text-primary">
                             {Number(session.amount).toLocaleString()}
@@ -131,7 +131,7 @@ export default function PayPage() {
                         </div>
                         <input
                             type="text"
-                            placeholder="Your Phone Number"
+                            placeholder="Votre numéro de téléphone"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             className="w-full rounded-2xl border border-white/10 bg-black/40 py-4 pl-12 pr-4 text-white placeholder-gray-500 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
@@ -145,7 +145,7 @@ export default function PayPage() {
                         </div>
                         <input
                             type="password"
-                            placeholder="Fiafio PIN"
+                            placeholder="Code PIN Fiafio"
                             value={pin}
                             onChange={(e) => setPin(e.target.value)}
                             className="w-full rounded-2xl border border-white/10 bg-black/40 py-4 pl-12 pr-4 text-white placeholder-gray-500 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
@@ -159,13 +159,13 @@ export default function PayPage() {
                         disabled={processing}
                         className="w-full rounded-2xl bg-primary py-4 font-bold text-background shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {processing ? <Loader2 className="mx-auto h-6 w-6 animate-spin" /> : 'Confirm Payment'}
+                        {processing ? <Loader2 className="mx-auto h-6 w-6 animate-spin" /> : 'Confirmer le paiement'}
                     </button>
                     
                     <div className="text-center">
                         <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
                              <ShieldCheck className="h-3 w-3" />
-                             <span>Secured by Fiafio Payments</span>
+                             <span>Sécurisé par Fiafio Payments</span>
                         </div>
                     </div>
                 </form>

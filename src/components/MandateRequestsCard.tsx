@@ -24,6 +24,7 @@ export default function MandateRequestsCard({ onMandateHandled }: Props) {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const fetchMandates = async () => {
     try {
@@ -64,6 +65,8 @@ export default function MandateRequestsCard({ onMandateHandled }: Props) {
     try {
       await api.post(`/mandates/${mandateId}/approve`);
       setMandates(mandates.filter(m => m.id !== mandateId));
+      setSuccessMessage('Abonnement autorisé avec succès !');
+      setTimeout(() => setSuccessMessage(null), 5000);
       onMandateHandled?.();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erreur lors de l\'approbation');
@@ -73,10 +76,12 @@ export default function MandateRequestsCard({ onMandateHandled }: Props) {
   };
 
   if (loading && mandates.length === 0) return null;
-  if (mandates.length === 0) return null;
+  if (mandates.length === 0 && !successMessage) {
+    return null;
+  }
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 p-6">
+    <div className="mb-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 p-6 shadow-xl shadow-purple-500/5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Repeat className="h-5 w-5 text-purple-400" />
@@ -97,6 +102,13 @@ export default function MandateRequestsCard({ onMandateHandled }: Props) {
         <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-3 flex items-center gap-2 text-red-400 text-sm">
           <AlertTriangle className="h-4 w-4" />
           {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-4 rounded-xl bg-green-500/10 border border-green-500/20 p-3 flex items-center gap-2 text-green-400 text-sm animate-in fade-in slide-in-from-top-1">
+          <Check className="h-4 w-4" />
+          {successMessage}
         </div>
       )}
 

@@ -71,7 +71,7 @@ export default function MerchantPortalMobile({
     { id: 'SETTINGS', label: 'Profil', icon: Settings },
   ];
 
-  const merchantBalance = accounts.find(a => a.type === 'MERCHANT')?.balance || 0;
+  const merchantBalance = Number(accounts.find(a => a.type === 'MERCHANT')?.balance || 0);
 
   return (
     <>
@@ -131,15 +131,23 @@ export default function MerchantPortalMobile({
                  <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Business Revenue</div>
                  <div className="text-3xl font-black tracking-tighter mb-4 truncate italic">
                     {isSandbox 
-                      ? formatCurrency(sandboxBalance.balance, sandboxBalance.currency)
-                      : formatCurrency(merchantBalance)
+                      ? formatCurrency(Number(sandboxBalance.balance), sandboxBalance.currency)
+                      : formatCurrency(Number(merchantBalance))
                     }
                  </div>
                  <div className="grid grid-cols-2 gap-2 mt-4">
-                    <button onClick={() => navigate('/deposit')} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/10 py-3">
-                       <ArrowDownLeft className="h-4 w-4" />
-                       <span className="text-[9px] font-black uppercase tracking-widest">Recharger</span>
-                    </button>
+                    <div className="flex flex-col gap-1 w-full relative group">
+                      <p className="text-[9px] text-center font-black uppercase tracking-widest text-black/60 px-2 leading-tight">
+                        Contactez un agent pour recharger
+                      </p>
+                      <button 
+                        disabled
+                        className="w-full flex flex-col items-center justify-center gap-1 rounded-xl bg-black/5 py-3 opacity-40 transition-all border border-white/5"
+                      >
+                        <ArrowDownLeft className="h-4 w-4" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-[#EEF2FF]/60">Recharger</span>
+                      </button>
+                    </div>
                     <button 
                       onClick={() => merchant?.kycStatus === 'VERIFIED' && navigate('/withdraw')}
                       disabled={merchant?.kycStatus !== 'VERIFIED'}

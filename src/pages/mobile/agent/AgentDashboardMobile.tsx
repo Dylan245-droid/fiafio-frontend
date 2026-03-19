@@ -132,7 +132,14 @@ export default function AgentDashboardMobile({
                           </div>
                           <span className="text-xs font-mono text-gray-500">{stats?.limits.percentage}%</span>
                        </div>
-                       <div className="text-2xl font-black mb-3">{formatCurrency(stats?.limits.todayUsed || 0)}</div>
+                       <div className="text-2xl font-black mb-1">{formatCurrency(stats?.limits.todayUsed || 0)}</div>
+                       
+                       {stats?.level.nextLevel && stats?.level.nextLevelLimit && (
+                         <p className="text-[10px] font-mono text-primary/60 uppercase mb-3">
+                            Limite Prochain Niveau ({stats.level.nextLevel}) : {formatCurrency(stats.level.nextLevelLimit)}
+                         </p>
+                       )}
+
                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                           <div className="h-full bg-blue-500 rounded-full" style={{ width: `${stats?.limits.percentage}%` }} />
                        </div>

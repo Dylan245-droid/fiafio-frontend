@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -542,7 +542,7 @@ export default function AgentDashboard() {
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">
-                Agent Protocol
+                Protocole Agent
                 {((stats?.kycLevel ?? 0) >= 2 && stats?.activation?.status === 'ACTIVE') && (
                   <span className="ml-2 bg-primary px-2 py-0.5 rounded text-[9px] font-mono text-black">
                     {user?.uniqueId}
@@ -702,13 +702,47 @@ export default function AgentDashboard() {
              {/* Quick Actions simplified for desktop side */}
              <div className="grid grid-cols-2 gap-4">
                 <button
+                  onClick={() => {
+                    if (stats?.activation?.status !== 'ACTIVE') {
+                      alert("Votre compte doit être activé pour effectuer des dépôts.");
+                      return;
+                    }
+                    setView('DEPOSIT');
+                  }}
+                  className={`flex flex-col items-center gap-3 rounded-[2rem] border border-white/5 bg-green-500/10 p-6 text-center transition hover:bg-green-500/20 group ${
+                    stats?.activation?.status !== 'ACTIVE' ? 'opacity-40 grayscale cursor-not-allowed' : ''
+                  }`}
+                >
+                  <div className="h-12 w-12 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-green-500/20">
+                    <ArrowDownLeft className="h-6 w-6 text-black" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white">Dépôt Client</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (stats?.activation?.status !== 'ACTIVE') {
+                      alert("Votre compte doit être activé pour effectuer des retraits.");
+                      return;
+                    }
+                    setView('WITHDRAW');
+                  }}
+                  className={`flex flex-col items-center gap-3 rounded-[2rem] border border-white/5 bg-orange-500/10 p-6 text-center transition hover:bg-orange-500/20 group ${
+                    stats?.activation?.status !== 'ACTIVE' ? 'opacity-40 grayscale cursor-not-allowed' : ''
+                  }`}
+                >
+                  <div className="h-12 w-12 rounded-xl bg-orange-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-orange-500/20">
+                    <Banknote className="h-6 w-6 text-black" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white">Retrait Client</span>
+                </button>
+                <button
                   onClick={() => navigate('/agent-commissions')}
                   className="flex flex-col items-center gap-3 rounded-[2rem] border border-white/5 bg-surface/20 p-6 text-center transition hover:bg-primary/10 group"
                 >
                   <div className="h-12 w-12 rounded-xl bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <TrendingUp className="h-6 w-6 text-green-500" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white">Earnings</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white">Revenus</span>
                 </button>
                 <button
                   onClick={() => {
@@ -976,7 +1010,7 @@ export default function AgentDashboard() {
                 <p className="text-sm text-yellow-400">🏆 Super Agent - Aucune limite quotidienne</p>
               ) : (
                 <p className="text-sm text-gray-400">
-                  sur {formatCurrency(stats.limits.daily)} ┬À Reste: <span className="text-blue-400 font-medium">{formatCurrency(stats.limits.remaining)}</span>
+                  sur {formatCurrency(stats.limits.daily)} | Reste: <span className="text-blue-400 font-medium">{formatCurrency(stats.limits.remaining)}</span>
                 </p>
               )}
             </div>
@@ -1005,9 +1039,16 @@ export default function AgentDashboard() {
                 </span>
               </div>
               {stats.level.nextLevel && (
-                <span className="text-xs text-gray-500">
-                  Prochain: {stats.level.nextLevel}
-                </span>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">
+                    Prochain: {stats.level.nextLevel}
+                  </p>
+                  {stats.level.nextLevelLimit && (
+                    <p className="text-[10px] font-mono text-primary/60 uppercase">
+                      Limite: {formatCurrency(stats.level.nextLevelLimit)}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
             
@@ -1044,7 +1085,7 @@ export default function AgentDashboard() {
             <div className="rounded-2xl border border-white/5 bg-surface/30 p-4">
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <TrendingUp className="h-4 w-4" />
-                Total Transactions
+                Transactions Totales
               </div>
               <p className="mt-1 text-xl font-bold text-white">{stats.totalTransactions}</p>
               <p className="text-xs text-gray-500">

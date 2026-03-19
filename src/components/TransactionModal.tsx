@@ -88,26 +88,15 @@ export default function TransactionModal({ reference, onClose, onCancellationReq
     }
   };
 
-  const getStatusIcon = () => {
-    switch (transaction?.status) {
-      case 'COMPLETED':
-        return <CheckCircle className="h-8 w-8 text-green-500" />;
-      case 'PENDING':
-        return <Clock className="h-8 w-8 text-yellow-500" />;
-      case 'REVERSED':
-        return <Ban className="h-8 w-8 text-red-500" />;
-      default:
-        return <AlertTriangle className="h-8 w-8 text-gray-500" />;
-    }
-  };
+
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-background border border-white/10 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-surface border border-white/10 p-6 shadow-2xl">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-gray-400 hover:bg-surface hover:text-white"
+          className="absolute right-4 top-4 rounded-full p-2 text-gray-400 hover:bg-black/10 hover:text-primary transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
@@ -133,22 +122,24 @@ export default function TransactionModal({ reference, onClose, onCancellationReq
                   : <ArrowUpRight className="h-8 w-8 text-red-500" />
                 }
               </div>
-              <p className={`text-3xl font-bold ${
-                transaction.direction === 'IN' ? 'text-green-500' : 'text-white'
+              <p className={`text-3xl font-black tracking-tighter ${
+                transaction.direction === 'IN' ? 'text-green-500' : 'text-slate-900 dark:text-white'
               }`}>
                 {transaction.direction === 'IN' ? '+' : '-'}
-                {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(transaction.amount)}
+                {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(transaction.amount)}
               </p>
-              <p className="mt-1 text-sm text-gray-400">{transaction.type}</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">{transaction.type}</p>
             </div>
 
             {/* Details */}
-            <div className="space-y-3 rounded-2xl bg-surface p-4">
+            <div className="space-y-3 rounded-2xl bg-black/5 dark:bg-black/20 p-5 border border-white/5">
               <div className="flex justify-between border-b border-white/5 pb-3">
-                <span className="text-gray-400">Statut</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Statut</span>
                 <div className="flex items-center gap-2">
-                  {getStatusIcon()}
-                  <span className={`font-bold ${
+                  {transaction.status === 'COMPLETED' && <CheckCircle className="h-3 w-3 text-green-500" />}
+                  {transaction.status === 'PENDING' && <Clock className="h-3 w-3 text-yellow-500" />}
+                  {transaction.status === 'REVERSED' && <Ban className="h-3 w-3 text-red-500" />}
+                  <span className={`text-xs font-black uppercase tracking-widest ${
                     transaction.status === 'COMPLETED' ? 'text-green-500' :
                     transaction.status === 'REVERSED' ? 'text-red-500' : 'text-yellow-500'
                   }`}>
@@ -158,51 +149,50 @@ export default function TransactionModal({ reference, onClose, onCancellationReq
               </div>
 
               <div className="flex justify-between border-b border-white/5 pb-3">
-                <span className="text-gray-400">Référence</span>
-                <span className="font-mono text-sm text-white">{transaction.reference}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Référence</span>
+                <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{transaction.reference}</span>
               </div>
 
               <div className="flex justify-between border-b border-white/5 pb-3">
-                <span className="text-gray-400">Date</span>
-                <span className="text-white">{format(new Date(transaction.createdAt), 'MMM d, yyyy HH:mm')}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Date</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white">{format(new Date(transaction.createdAt), 'MMM d, yyyy HH:mm')}</span>
               </div>
 
               {transaction.fee > 0 && (
                 <div className="flex justify-between border-b border-white/5 pb-3">
-                  <span className="text-gray-400">Frais</span>
-                  <span className="text-red-400">-{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(transaction.fee)}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Frais</span>
+                  <span className="text-xs font-bold text-red-500">-{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(transaction.fee)}</span>
                 </div>
               )}
 
               {transaction.sender && transaction.direction === 'IN' && (
                 <div className="flex justify-between border-b border-white/5 pb-3">
-                  <span className="text-gray-400">De</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">De</span>
                   <div className="text-right">
-                    <p className="text-white">{transaction.sender.fullName}</p>
-                    <p className="text-xs text-gray-500">{transaction.sender.uniqueId}</p>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">{transaction.sender.fullName}</p>
+                    <p className="text-[10px] font-mono text-gray-500 uppercase">{transaction.sender.uniqueId}</p>
                   </div>
                 </div>
               )}
 
               {transaction.receiver && transaction.direction === 'OUT' && (
                 <div className="flex justify-between border-b border-white/5 pb-3">
-                  <span className="text-gray-400">À</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">À</span>
                   <div className="text-right">
-                    {/* For MERCHANT_PAYMENT, show merchant name from description */}
                     {transaction.type === 'MERCHANT_PAYMENT' && transaction.description ? (
                       <>
-                        <p className="text-white font-bold">
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">
                           {transaction.description.match(/Payment to ([^(]+)/)?.[1]?.trim() || 
                            transaction.description.match(/Payout from ([^(]+)/)?.[1]?.trim() ||
                            'Marchand'}
                         </p>
-                        <p className="text-xs text-gray-500">{transaction.receiver.fullName}</p>
-                        <p className="text-xs text-gray-600">{transaction.receiver.uniqueId}</p>
+                        <p className="text-[10px] text-gray-500">{transaction.receiver.fullName}</p>
+                        <p className="text-[10px] font-mono text-gray-600">{transaction.receiver.uniqueId}</p>
                       </>
                     ) : (
                       <>
-                        <p className="text-white">{transaction.receiver.fullName}</p>
-                        <p className="text-xs text-gray-500">{transaction.receiver.uniqueId}</p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">{transaction.receiver.fullName}</p>
+                        <p className="text-[10px] font-mono text-gray-500">{transaction.receiver.uniqueId}</p>
                       </>
                     )}
                   </div>
@@ -210,38 +200,38 @@ export default function TransactionModal({ reference, onClose, onCancellationReq
               )}
 
               {transaction.agent && (
-                <div className="flex justify-between pb-3">
-                  <span className="text-gray-400">Agent</span>
-                  <span className="text-white">{transaction.agent.fullName}</span>
+                <div className="flex justify-between pb-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Agent</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{transaction.agent.fullName}</span>
                 </div>
               )}
 
               {transaction.description && (
-                <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
-                  <span className="text-gray-400 text-sm">Note</span>
-                  <p className="text-gray-200 bg-white/5 rounded-xl p-3 text-sm leading-relaxed">
+                <div className="flex flex-col gap-2 pt-3 border-t border-white/5">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Note</span>
+                  <p className="text-xs font-medium leading-relaxed p-3 rounded-xl bg-black/5 dark:bg-white/5 text-slate-700 dark:text-gray-300">
                     {transaction.description}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Cancellation Button - Only for P2P and WITHDRAWAL, not REVERSAL */}
+            {/* Cancellation Button */}
             {transaction.canRequestCancellation && 
              transaction.direction === 'OUT' && 
              transaction.type !== 'REVERSAL' && (
               <button
                 onClick={handleRequestCancellation}
                 disabled={cancelling}
-                className="w-full rounded-2xl border border-red-500/50 bg-red-500/10 py-3 font-semibold text-red-500 transition hover:bg-red-500/20 disabled:opacity-50"
+                className="w-full rounded-2xl border border-red-500/30 bg-red-500/10 py-4 text-xs font-black uppercase tracking-widest text-red-500 transition hover:bg-red-500/20 disabled:opacity-50"
               >
-                {cancelling ? 'Traitement...' : '🚫 Demander Annulation (5% frais)'}
+                {cancelling ? 'Traitement...' : '🚫 Demander Annulation'}
               </button>
             )}
 
             {!transaction.canRequestCancellation && transaction.status === 'REVERSED' && transaction.direction === 'OUT' && (
-              <p className="text-center text-xs text-gray-500">
-                Cette transaction a déjà été annulée
+              <p className="text-center text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Transaction déjà annulée
               </p>
             )}
           </div>

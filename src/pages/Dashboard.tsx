@@ -108,7 +108,14 @@ export default function Dashboard() {
               </div>
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">User Profile</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">
+                User Profile 
+                {user?.uniqueId && (
+                  <span className="ml-2 bg-primary/20 px-2 py-0.5 rounded text-[10px] font-mono text-primary">
+                    {user.uniqueId}
+                  </span>
+                )}
+              </p>
               <h1 className="text-2xl font-black uppercase tracking-tighter text-white leading-tight">
                 {user?.fullName?.split(' ')[0]}
               </h1>
@@ -207,11 +214,15 @@ export default function Dashboard() {
                 </button>
               )}
               <button 
-                onClick={() => navigate('/deposit')}
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/10 py-4 font-semibold transition hover:bg-white/20 backdrop-blur-md"
+                disabled
+                title="Pour les recharges, rapprochez-vous d'un agent"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/5 py-4 font-semibold opacity-50 cursor-not-allowed backdrop-blur-md transition-all group relative"
               >
                 <ArrowDownLeft className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Recharger</span>
+                <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-black/90 text-[10px] text-primary p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 border border-primary/20 pointer-events-none shadow-2xl font-black uppercase tracking-widest">
+                  Pour les recharges, rapprochez-vous d'un agent
+                </div>
               </button>
               <button 
                 onClick={() => kycLimits && kycLimits.perTransaction > 0 && navigate('/withdraw')}
