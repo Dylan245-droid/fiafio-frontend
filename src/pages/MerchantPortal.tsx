@@ -12,41 +12,11 @@ import { useAccounts } from '../hooks/useAccounts';
 import { useTransactions } from '../hooks/useTransactions';
 import TransactionModal from '../components/TransactionModal';
 import ThemeToggle from '../components/ThemeToggle';
+import type { MerchantData, MerchantTransaction, MerchantTab, MerchantAccount } from './MerchantPortalTypes';
+import MerchantPortalMobile from './mobile/merchant/MerchantPortalMobile';
 import { ShieldCheck, Clock as ClockIcon, ShieldAlert } from 'lucide-react';
 
-type Tab = 'DASHBOARD' | 'API_KEYS' | 'TRANSACTIONS' | 'WEBHOOKS' | 'SETTINGS';
 
-interface MerchantData {
-  id: number;
-  businessName: string;
-  publicKey: string;
-  secretKey?: string;
-  webhookSecret?: string;
-  webhookUrl?: string;
-  isActive: boolean;
-  isTestMode: boolean;
-  defaultCurrency: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  websiteUrl?: string;
-  kycStatus: string;
-  testPublicKey?: string;
-  testSecretKey?: string;
-  testWebhookSecret?: string;
-}
-
-interface Transaction {
-  id: string;
-  amount: number;
-  fee: number;
-  netAmount: number;
-  currency: string;
-  status: string;
-  description: string;
-  customerEmail?: string;
-  createdAt: string;
-  paidAt?: string;
-}
 
 
 export default function MerchantPortal() {
@@ -59,9 +29,16 @@ export default function MerchantPortal() {
   
   const accounts = accountsData?.accounts || [];
   
-  const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
+  const [activeTab, setActiveTab] = useState<MerchantTab>('DASHBOARD');
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<MerchantTransaction[]>([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [loading, setLoading] = useState(true);
   const [selectedTxRef, setSelectedTxRef] = useState<string | null>(null);
   
@@ -222,11 +199,11 @@ export default function MerchantPortal() {
   const maskKey = (key: string) => key ? `${key.substring(0, 12)}${'•'.repeat(20)}` : '';
 
   const tabs = [
-    { key: 'DASHBOARD' as Tab, label: 'Dashboard', icon: LayoutDashboard },
-    { key: 'API_KEYS' as Tab, label: 'Clés API', icon: Key },
-    { key: 'TRANSACTIONS' as Tab, label: 'Transactions', icon: Receipt },
-    { key: 'WEBHOOKS' as Tab, label: 'Webhooks', icon: Webhook },
-    { key: 'SETTINGS' as Tab, label: 'Paramètres', icon: Settings },
+    { key: 'DASHBOARD' as MerchantTab, label: 'Dashboard', icon: LayoutDashboard },
+    { key: 'API_KEYS' as MerchantTab, label: 'Clés API', icon: Key },
+    { key: 'TRANSACTIONS' as MerchantTab, label: 'Transactions', icon: Receipt },
+    { key: 'WEBHOOKS' as MerchantTab, label: 'Webhooks', icon: Webhook },
+    { key: 'SETTINGS' as MerchantTab, label: 'Paramètres', icon: Settings },
   ];
 
   if (loading) {
@@ -240,6 +217,9 @@ export default function MerchantPortal() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-white">
       <div className="mx-auto max-w-6xl">
+        
+        <div className="hidden md:block">
+          {/* Desktop Content */}
         {/* Header Premium 2026 - Simplified */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between p-6 rounded-[2.5rem] bg-surface/20 border border-white/5 backdrop-blur-md gap-6">
           <div className="flex items-center gap-5">
@@ -855,7 +835,45 @@ export default function MerchantPortal() {
           </div>
         </div>
       )}
+    </div>
 
+        {/* --- MOBILE VIEW --- */}
+        {isMobile && (
+          <MerchantPortalMobile 
+            merchant={merchant}
+            transactions={transactions}
+            accounts={accounts as MerchantAccount[]}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            isSandbox={isSandbox}
+            setIsSandbox={setIsSandbox}
+            loading={loading}
+            handleRefresh={handleRefresh}
+            handleLogout={logout}
+            setSelectedTxRef={setSelectedTxRef}
+            showSecret={showSecret}
+            setShowSecret={setShowSecret}
+            showWebhookSecret={showWebhookSecret}
+            setShowWebhookSecret={setShowWebhookSecret}
+            copiedKey={copiedKey}
+            handleCopy={handleCopy}
+            handleRotateKeys={handleRotateKeys}
+            rotating={rotating}
+            txPage={txPage}
+            setTxPage={setTxPage}
+            txMeta={txMeta}
+            txStatus={txStatus}
+            setTxStatus={setTxStatus}
+            txSearch={txSearch}
+            setTxSearch={setTxSearch}
+            settingsForm={settingsForm}
+            setSettingsForm={setSettingsForm}
+            handleSaveSettings={handleSaveSettings}
+            saving={saving}
+            saveSuccess={saveSuccess}
+            sandboxBalance={sandboxBalance}
+          />
+        )}
       {/* Transaction Detail Modal */}
       {selectedTxRef && (
         <TransactionModal 

@@ -213,7 +213,7 @@ export default function KycVerificationPage() {
   const roleConfig = ROLE_MESSAGES[kycStatus?.role || 'CLIENT'];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background font-sans text-white">
+    <div className="min-h-screen bg-background font-sans text-white">
       {/* Header */}
       <div className="p-4 flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-400 hover:text-white">
@@ -230,7 +230,7 @@ export default function KycVerificationPage() {
         </button>
       </div>
 
-      <div className="flex-1 space-y-6 p-4 pb-8">
+      <div className="space-y-6 p-4 pb-8">
         {/* Title & Status */}
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">

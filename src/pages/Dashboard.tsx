@@ -11,6 +11,8 @@ import AgentStatsCard from '../components/AgentStatsCard';
 import PaymentRequestsCard from '../components/PaymentRequestsCard';
 import MandateRequestsCard from '../components/MandateRequestsCard';
 import ThemeToggle from '../components/ThemeToggle';
+import type { Account, KycLimits, Transaction, MobileTab } from './DashboardTypes';
+import DashboardMobile from './mobile/user/DashboardMobile';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -28,8 +30,16 @@ export default function Dashboard() {
   const [selectedTxRef, setSelectedTxRef] = useState<string | null>(null);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<MobileTab>('HOME');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const loading = accountsLoading || transactionsLoading;
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch additional data not covered by React Query
   const fetchAdditionalData = async () => {
@@ -81,6 +91,9 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-white">
       <div className="mx-auto max-w-6xl">
+        
+        <div className="hidden md:block">
+          {/* Desktop Content */}
         {/* Header Premium 2026 - Simplified */}
         <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between p-6 rounded-[2.5rem] bg-surface/20 border border-white/5 backdrop-blur-md gap-6">
           <div className="flex items-center gap-5">
@@ -498,8 +511,26 @@ export default function Dashboard() {
         >
           Grand Livre Complet
         </button>
+        </div>
       </div>
 
+        {/* --- MOBILE VIEW --- */}
+        {isMobile && (
+          <DashboardMobile 
+            user={user}
+            accounts={accounts as Account[]}
+            transactions={transactions as Transaction[]}
+            kycLimits={kycLimits as KycLimits}
+            totalBalance={totalBalance}
+            loading={loading}
+            handleRefresh={handleRefresh}
+            handleLogout={handleLogout}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            setSelectedTxRef={setSelectedTxRef}
+            withdrawalRequests={withdrawalRequests}
+          />
+        )}
       {/* Transaction Detail Modal */}
       {selectedTxRef && (
         <TransactionModal 

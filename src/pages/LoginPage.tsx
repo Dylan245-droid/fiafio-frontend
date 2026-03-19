@@ -111,6 +111,7 @@ export default function LoginPage() {
   };
 
   const handleResendOTP = async () => {
+    if (loading) return;
     setError('');
     setLoading(true);
 

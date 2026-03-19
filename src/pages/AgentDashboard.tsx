@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -9,77 +9,34 @@ import {
   ArrowDownLeft, Banknote, Wallet, History, RefreshCcw, LogOut,
   TrendingUp, Award, QrCode,
   Search, CheckCircle, Delete, ArrowLeft, User, AlertTriangle,
-  Bell, XCircle, Clock, Eye, DollarSign, ShieldCheck
+  Clock,
+  XCircle,
+  Eye,
+  DollarSign,
+  Bell,
+  ShieldCheck
 } from 'lucide-react';
 import TransactionModal from '../components/TransactionModal';
 import ThemeToggle from '../components/ThemeToggle';
-
-interface Transaction {
-  reference: string;
-  type: string;
-  amount: number;
-  status: string;
-  createdAt: string;
-  direction: 'IN' | 'OUT';
-  description: string;
-}
-
-interface AgentStats {
-  level: {
-    key: number;
-    name: string;
-    badge: string;
-    daysActive: number;
-    daysUntilNextLevel: number;
-    transactionsUntilNextLevel: number;
-    nextLevel: string | null;
-    isStagnating: boolean;
-    stagnationReason: string | null;
-  };
-  limits: {
-    daily: number;
-    perTransaction: number;
-    todayUsed: number;
-    remaining: number;
-    percentage: number;
-  };
-  float: {
-    balance: number;
-    minimum: number;
-    canOperate: boolean;
-    blockReason: string | null;
-  };
-  commissions: {
-    today: number;
-    week: number;
-    month: number;
-  };
-  kycLevel: number;
-  totalTransactions: number;
-  activation: {
-    status: 'PENDING_FLOAT' | 'ACTIVE' | 'SUSPENDED' | null;
-    deadline: string | null;
-    daysRemaining: number | null;
-  };
-}
-
-interface Customer {
-  id: number;
-  phone: string;
-  uniqueId?: string;
-  fullName: string | null;
-}
-
-type View = 'DASHBOARD' | 'DEPOSIT' | 'ACTIVATE' | 'MY_QR';
-type Step = 'CUSTOMER' | 'AMOUNT' | 'CONFIRM' | 'SUCCESS';
+import type { AgentStats, Customer, MobileTab, Step, Transaction, View } from './AgentDashboardTypes';
+import AgentDashboardMobile from './mobile/agent/AgentDashboardMobile';
 
 export default function AgentDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [view, setView] = useState<View>('DASHBOARD');
+  const [activeTab, setActiveTab] = useState<MobileTab>('HOME');
   const [step, setStep] = useState<Step>('CUSTOMER');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Resize listener
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Data
   const [floatBalance, setFloatBalance] = useState(0);
@@ -191,6 +148,7 @@ export default function AgentDashboard() {
 
   const formatCurrency = (n: number) => 
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(n);
+
 
 
   const handleLogout = () => {
@@ -565,8 +523,10 @@ export default function AgentDashboard() {
 
   // Main Dashboard
   return (
-    <div className="min-h-screen bg-background p-4 font-sans text-white">
-      <div className="mx-auto max-w-6xl">
+    <div className="min-h-screen bg-background font-sans text-white pb-12 md:pb-8">
+      <div className="mx-auto max-w-6xl p-4 sm:p-6">
+        {/* --- DESKTOP VIEW --- */}
+        <div className="hidden md:block">
         {/* Header Premium 2026 - Simplified */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between p-6 rounded-[2.5rem] bg-surface/20 border border-white/5 backdrop-blur-md gap-6">
           <div className="flex items-center gap-5">
@@ -1016,7 +976,7 @@ export default function AgentDashboard() {
                 <p className="text-sm text-yellow-400">🏆 Super Agent - Aucune limite quotidienne</p>
               ) : (
                 <p className="text-sm text-gray-400">
-                  sur {formatCurrency(stats.limits.daily)} · Reste: <span className="text-blue-400 font-medium">{formatCurrency(stats.limits.remaining)}</span>
+                  sur {formatCurrency(stats.limits.daily)} ┬À Reste: <span className="text-blue-400 font-medium">{formatCurrency(stats.limits.remaining)}</span>
                 </p>
               )}
             </div>
@@ -1173,6 +1133,27 @@ export default function AgentDashboard() {
         </button>
       </div>
 
+        </div>
+
+        {/* --- MOBILE VIEW --- */}
+        {isMobile && (
+          <AgentDashboardMobile 
+            user={user}
+            stats={stats}
+            floatBalance={floatBalance}
+            transactions={transactions}
+            pendingCancellations={pendingCancellations}
+            pendingWithdrawals={pendingWithdrawals}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            view={view}
+            setView={setView}
+            refreshing={refreshing}
+            fetchData={fetchData}
+            handleLogout={handleLogout}
+            setSelectedTxRef={setSelectedTxRef}
+          />
+        )}
       {/* Transaction Modal */}
       {selectedTxRef && (
         <TransactionModal 
@@ -1276,3 +1257,4 @@ export default function AgentDashboard() {
     </div>
   );
 }
+
