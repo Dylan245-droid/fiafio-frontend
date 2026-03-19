@@ -134,22 +134,24 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <ThemeToggle />
+            <div className="hidden lg:block">
+              <ThemeToggle />
+            </div>
             {isAuthenticated ? (
               <button 
                 onClick={() => navigate(getDashboardPath())} 
-                className="px-4 py-2 sm:px-6 sm:py-2.5 bg-primary text-black rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:scale-105 active:scale-95 transition-all shadow-lg"
+                className="hidden lg:block px-4 py-2 sm:px-6 sm:py-2.5 bg-primary text-black rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:scale-105 active:scale-95 transition-all shadow-lg"
               >
                 Mon Espace
               </button>
             ) : (
               <>
-                <button onClick={() => navigate('/login')} className="hidden sm:block px-4 py-2 text-sm font-semibold hover:text-primary transition-colors">
+                <button onClick={() => navigate('/login')} className="hidden lg:block px-4 py-2 text-sm font-semibold hover:text-primary transition-colors">
                   Connexion
                 </button>
                 <button
                   onClick={() => navigate('/register')}
-                  className="px-4 py-2 sm:px-6 sm:py-2.5 bg-primary text-black rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:scale-105 active:scale-95 transition-all shadow-lg"
+                  className="hidden lg:block px-4 py-2 sm:px-6 sm:py-2.5 bg-primary text-black rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:scale-105 active:scale-95 transition-all shadow-lg"
                 >
                   Rejoindre
                 </button>
@@ -168,6 +170,10 @@ export default function LandingPage() {
         {isMenuOpen && (
           <div className="lg:hidden absolute top-full left-0 right-0 bg-[#050505]/95 backdrop-blur-xl border-b border-white/5 p-6 space-y-6 animate-fade-in themed-mobile-menu">
             <div className="flex flex-col space-y-4 text-lg font-bold text-white">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500 text-sm font-mono uppercase tracking-widest">Menu</span>
+                <ThemeToggle />
+              </div>
               <a href="#transparency" onClick={() => setIsMenuOpen(false)} className="hover:text-primary">Transparence</a>
               <a href="#ecosystem" onClick={() => setIsMenuOpen(false)} className="hover:text-primary">Écosystème</a>
               <button onClick={() => { navigate('/merchants'); setIsMenuOpen(false); }} className="text-left hover:text-primary">Marchands</button>
