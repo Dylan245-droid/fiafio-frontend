@@ -23,7 +23,7 @@ export default function LandingPage() {
   const getDashboardPath = () => {
     if (!user) return '/login';
     if (user.role === 'ADMIN') return '/admin';
-    if (user.role === 'AGENT') return '/agent';
+    if (user.role === 'AGENT') return '/agent-dashboard';
     return '/dashboard';
   };
 
